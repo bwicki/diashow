@@ -1,7 +1,7 @@
 /* Diashow — Einstieg: Kopfzeile, Navigation, Menü, Öffnen/Speichern, Ordnerzugriff. */
 import { APP } from './version.js';
 import { t, lang, setLang } from './i18n.js';
-import { $, h, clear, append, load, save, msg, copyAllMsgs, dialog, idbClear, fmtDateTime, esc } from './util.js';
+import { $, h, clear, append, load, save, msg, copyAllMsgs, toggleLog, clearMsgs, updMsgs, dialog, idbClear, fmtDateTime, esc } from './util.js';
 import * as fsx from './fsx.js';
 import { cur, onChange, changed, newShow, setShow, toJSON } from './show.js';
 import { QUALITY, BEAMERS, setBeamer } from './media.js';
@@ -50,9 +50,12 @@ function renderMenu() {
     item(t('about'), about),
   );
 }
-$('menuBtn').onclick = (e) => { e.stopPropagation(); renderMenu(); $('menu').classList.toggle('hidden'); };
+$('menuBtn').onclick = (e) => { e.stopPropagation(); toggleLog(false); renderMenu(); $('menu').classList.toggle('hidden'); };
 document.addEventListener('click', (e) => { if (!$('menu').contains(e.target)) $('menu').classList.add('hidden'); });
 $('msgAll').onclick = copyAllMsgs;
+$('logClear').onclick = clearMsgs;
+$('logBtn').onclick = (e) => { e.stopPropagation(); $('menu').classList.add('hidden'); toggleLog(); };
+document.addEventListener('click', (e) => { const p = $('logPanel'); if (p && !p.contains(e.target) && !$('logBtn').contains(e.target)) toggleLog(false); });
 
 /* ---------- Ansichten ---------- */
 export function go(v) {
@@ -63,7 +66,7 @@ export function go(v) {
 }
 function renderAll() {
   renderHeader();
-  $('msgAll').textContent = t('copyAll');
+  $('msgAll').textContent = t('copyAll'); $('logClear').textContent = t('logClear'); $('logTitle').textContent = t('log'); $('logBtn').title = t('log'); updMsgs();
   for (const v of VIEWS) $('v-' + v).classList.toggle('on', v === view);
   const el = $('v-' + view);
   if (!fsx.ready() && view !== 'play') return renderAccess(el);

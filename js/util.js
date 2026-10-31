@@ -55,27 +55,40 @@ export async function idbClear(store) {
   try { const d = await db(); await new Promise((res) => { const tx = d.transaction(store, 'readwrite'); tx.objectStore(store).clear(); tx.oncomplete = res; tx.onerror = res; }); } catch { /* egal */ }
 }
 
-/* ---------- Meldungen: bleiben stehen und sind kopierbar (Konvention aller Apps) ---------- */
+/* ---------- Meldungen: Protokoll hinter dem Symbol in der Kopfzeile.
+   Meldungen bleiben im Protokoll stehen und sind kopierbar (Konvention aller Apps);
+   das Symbol zeigt die Zahl ungelesener Meldungen, bei Fehlern rot. ---------- */
+let unread = 0; let unreadErr = false;
 export function msg(text, level = 'info') {
   const box = $('msgs'); if (!box) { console.log(text); return; }
   const time = new Date().toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   const full = `${time} ${text}`;
   const row = h('div.msg.' + level, [
     h('span.msg-t', full),
-    h('button.btn.mini', { type: 'button', title: t('copy'), onclick: () => { navigator.clipboard?.writeText(full).catch(() => {}); } }, t('copy')),
+    h('button.btn.mini', { type: 'button', title: t('copy'), onclick: () => { navigator.clipboard?.writeText(row.querySelector('.msg-t').textContent).catch(() => {}); } }, t('copy')),
     h('button.btn.mini', { type: 'button', title: t('close'), onclick: () => { row.remove(); updMsgs(); } }, '✕'),
   ]);
-  box.appendChild(row); updMsgs();
+  box.prepend(row);   // neueste oben
+  if (!logOpen()) { unread++; if (level === 'err' || level === 'warn') unreadErr = true; }
+  updMsgs();
   return row;
 }
+const logOpen = () => !$('logPanel')?.classList.contains('hidden');
 export function updMsgs() {
   const box = $('msgs'); if (!box) return;
   const n = box.querySelectorAll('.msg').length;
-  $('msgbar').hidden = n === 0;
-  const all = $('msgAll'); if (all) all.hidden = n < 2;
+  const e = $('logEmpty'); if (e) e.hidden = n > 0;
+  const b = $('logBadge'); if (b) { b.hidden = unread === 0; b.textContent = unread > 99 ? '99+' : String(unread); b.classList.toggle('err', unreadErr); }
 }
+export function toggleLog(force) {
+  const p = $('logPanel'); if (!p) return;
+  const open = force ?? p.classList.contains('hidden');
+  p.classList.toggle('hidden', !open);
+  if (open) { unread = 0; unreadErr = false; updMsgs(); }
+}
+export function clearMsgs() { const box = $('msgs'); if (box) box.replaceChildren(); unread = 0; unreadErr = false; updMsgs(); }
 export function copyAllMsgs() {
-  const txt = [...document.querySelectorAll('#msgs .msg-t')].map((e) => e.textContent).join('\n');
+  const txt = [...document.querySelectorAll('#msgs .msg-t')].map((e) => e.textContent).reverse().join('\n');
   navigator.clipboard?.writeText(txt).catch(() => {});
 }
 

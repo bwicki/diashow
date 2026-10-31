@@ -1,5 +1,11 @@
 # Changelog — Diashow
 
+## 1.3.1 — 2026-11-01
+
+- Meldungen schieben die Ansicht nicht mehr nach unten: sie stehen im **Protokoll** hinter dem Symbol
+  in der Kopfzeile (neueste oben, einzeln oder alle kopierbar, «Leeren»). Das Symbol zeigt die Zahl neuer
+  Meldungen, bei Warnungen und Fehlern rot.
+
 ## 1.3.0 — 2026-11-01
 
 - **Wasserzeichen:** Grösse (2–40 % der Bildhöhe), Deckkraft und Position ändern sich sofort, auch bei

@@ -36,7 +36,6 @@ header.topbar{position:relative;z-index:60;background:var(--bg);padding:8px 14px
 .btn.on{border-color:var(--amber);color:var(--amber);}
 
 /* ---------- Meldungen: bleiben stehen, kopierbar ---------- */
-.msgbar{display:flex;gap:8px;align-items:flex-start;padding:6px 14px;background:var(--panel-2);border-bottom:1px solid var(--line);max-height:150px;overflow:auto;}
 .msgs{flex:1;display:flex;flex-direction:column;gap:4px;}
 .msg{display:flex;gap:8px;align-items:center;font-size:12.5px;}
 .msg-t{flex:1;font-family:var(--mono);font-size:11.5px;user-select:text;white-space:pre-wrap;}
@@ -271,3 +270,13 @@ input[type=range]{accent-color:var(--amber);}
 .sl .qflags{left:46px;top:6px;}
 .sl .qflags .qf{min-width:20px;height:20px;font-size:12px;}
 .sl[hidden]{display:none !important;}
+
+/* Protokoll (Symbol in der Kopfzeile) */
+.logbtn{position:relative;}
+.logbadge{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--amber);color:#fff;font-family:var(--mono);font-size:10.5px;line-height:18px;text-align:center;}
+.logbadge.err{background:var(--temp);animation:pulse 1.2s ease-in-out 3;}
+@keyframes pulse{50%{transform:scale(1.25);}}
+.logpanel{position:absolute;right:56px;top:calc(100% - 4px);width:min(640px,92vw);max-height:60vh;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.18);z-index:85;}
+.loghead{display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line-soft);}
+.logpanel .msgs{overflow:auto;padding:8px 12px;display:flex;flex-direction:column;gap:6px;}
+.logempty{padding:14px;color:var(--text-dim);font-family:var(--mono);font-size:12px;}

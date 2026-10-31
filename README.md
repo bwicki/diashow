@@ -22,9 +22,10 @@ Projektordner `05_3D-Prints\042 WebAPP diashow`.
 ### Kopfzeile
 
 Titel mit Version (Klick = «Über»), die drei Schritte als Reiter, rechts **Neu**, **Öffnen**,
-**Speichern** und das Menü ≡ (Speichern unter, Stammordner ändern, English/Deutsch, hell/dunkel,
-Vorschau-Zwischenspeicher leeren). Unter der Kopfzeile stehen die **Meldungen**: sie bleiben stehen,
-bis man sie schliesst, und lassen sich einzeln oder gesamthaft kopieren. `Ctrl+S` speichert.
+**Speichern**, das **Protokoll** (Symbol mit Zähler neuer Meldungen, rot bei Warnungen/Fehlern; Meldungen
+bleiben stehen und lassen sich einzeln oder gesamthaft kopieren) und das Menü ≡ (Speichern unter,
+Stammordner ändern, English/Deutsch, hell/dunkel, Beamer-Auflösung für Hinweise, Vorschau-Zwischenspeicher
+leeren). `Ctrl+S` speichert.
 
 ### Erster Start: Stammordner freigeben
 
