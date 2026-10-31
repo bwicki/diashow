@@ -3,7 +3,7 @@
  * Titelfolien-Editor (Farben, Schrift, Logo, Hintergrundbild) und Wasserzeichen.
  */
 import { t } from '../i18n.js';
-import { $, h, clear, append, msg, dialog, mmss } from '../util.js';
+import { $, h, clear, append, msg, dialog, mmss, load, save } from '../util.js';
 import * as fsx from '../fsx.js';
 import { thumb, dateOf, fileOf, forget, kindOf } from '../media.js';
 import { cur, changed, onChange, addTitle, TRANSITIONS } from '../show.js';
@@ -12,6 +12,7 @@ import { pickImage } from './picker.js';
 import { go } from '../app.js';
 
 let root = null; let selId = null; let dragId = null; let anchor = null;
+let cardSize = load('diashow.ed.size', 200);
 const multi = new Set();      // Mehrfachauswahl (enthält immer selId)
 const missing = new Set();
 const DURS = [2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 30, 45, 60];
@@ -22,7 +23,7 @@ export function renderEditor(el) {
     h('div.edmain', [h('div.toolbar#edBar'), h('div.slides#slides')]),
     h('aside.side#edSide'),
   ]));
-  renderBar(); renderSlides(); renderSide();
+  renderSlides(); renderBar(); renderSide();
 }
 onChange((what) => { if (root?.classList.contains('on') && (what === 'slides' || what === 'reload')) { renderSlides(); renderSide(); } });
 
@@ -34,7 +35,9 @@ function renderBar() {
     h('button.btn', { type: 'button', onclick: shuffle }, t('shuffleOnce')),
     h('button.btn', { type: 'button', onclick: sortByDate }, t('sortDate')),
     h('button.btn', { type: 'button', onclick: () => go('lib') }, t('addImages')),
+    h('label.ctl', t('size'), h('input', { type: 'range', min: 90, max: 420, value: cardSize, oninput: (e) => { cardSize = +e.target.value; box()?.style.setProperty('--sw', cardSize + 'px'); }, onchange: () => save('diashow.ed.size', cardSize) })),
   );
+  box()?.style.setProperty('--sw', cardSize + 'px');
 }
 const idx = (id) => cur.show.slides.findIndex((s) => s.id === id);
 const box = () => $('slides');

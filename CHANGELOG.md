@@ -1,5 +1,10 @@
 # Changelog — Diashow
 
+## 1.1.2 — 2026-10-31
+
+- «Diashow bearbeiten»: Schieberegler «Grösse» für die Kacheln (klein = viele Dias auf einen Blick, um
+  Gruppen mit Shift-/Ctrl-Klick zu markieren und gemeinsam zu verschieben oder zu bearbeiten).
+
 ## 1.1.1 — 2026-10-31
 
 - **Fehler behoben:** Bei grossen Diashows (z. B. 250 Dias) schrumpften die Kacheln in «Diashow bearbeiten»

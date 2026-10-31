@@ -4,8 +4,8 @@
  */
 export const APP = {
   name: 'Diashow',
-  version: '1.1.1',
+  version: '1.1.2',
   date: '2026-10-31',
-  cache: 'diashow-v1.1.1',
+  cache: 'diashow-v1.1.2',
   repo: 'https://github.com/bwicki/diashow',
 };
