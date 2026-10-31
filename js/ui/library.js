@@ -2,7 +2,7 @@
 import { t } from '../i18n.js';
 import { $, h, clear, load, save, msg, dialog, fmtDate, mmss } from '../util.js';
 import * as fsx from '../fsx.js';
-import { kindOf, extOf, thumb, dateOf, imageBlob, pdfPages, fileOf } from '../media.js';
+import { kindOf, extOf, thumb, dateOf, imageBlob, pdfPages, fileOf, qualityFlags, hamming } from '../media.js';
 import { cur, hasSlide, toggleSlide, addSlide, countPages, changed, onChange } from '../show.js';
 import { go } from '../app.js';
 
@@ -14,6 +14,7 @@ const st = {
   filter: load('diashow.lib.filter', 'all'),
   size: load('diashow.lib.size', 240),
   list: [],
+  q: new Map(),     // Pfad -> {flags, hash, size, dup:[Pfade]} für Qualitätshinweise
   bad: new Set(),   // Pfade, die nicht darstellbar sind (z. B. Video-Codec)
 };
 const persist = () => { save('diashow.lib.path', st.path); save('diashow.lib.open', [...st.open]); save('diashow.lib.sub', st.sub); save('diashow.lib.sort', st.sort); save('diashow.lib.filter', st.filter); save('diashow.lib.size', st.size); };
@@ -68,6 +69,7 @@ function renderBar() {
     h('label.ctl', t('show'), sel('lFilter', st.filter, [['all', t('fAll')], ['img', t('fImg')], ['pdf', t('fPdf')], ['video', t('fVideo')]], (v) => { st.filter = v; persist(); loadGrid(); })),
     h('label.ctl', h('input', { type: 'checkbox', checked: st.sub, onchange: (e) => { st.sub = e.target.checked; persist(); loadGrid(); } }), t('subfolders')),
     h('label.ctl', t('size'), h('input', { type: 'range', min: 140, max: 520, value: st.size, oninput: (e) => { st.size = +e.target.value; gridEl.style.setProperty('--tw', st.size + 'px'); }, onchange: persist })),
+    h('span.qlegend', { title: t('qLegendTip') }, h('span.qf.lowres.warn', '▦'), t('qL1'), h('span.qf.blur', '◌'), t('qL2'), h('span.qf.dup', '⧉'), t('qL3')),
     h('button.btn', { type: 'button', onclick: selectAll }, t('selectAll')),
     h('button.btn.icon', { type: 'button', title: t('reload'), onclick: () => { fsx.invalidate(); renderTree(); loadGrid(); } }, '↻'),
   );
@@ -124,7 +126,7 @@ async function loadGrid(quiet) {
     if (my !== token) return;
     list.sort((a, b) => a.date - b.date);
   }
-  st.list = list;
+  st.list = list; st.q = new Map();
   renderGrid(hidden);
 }
 function groupOf(f) {
@@ -171,11 +173,40 @@ async function fillThumb(el) {
     el.querySelector('.ph').replaceWith(img);
     if (f.kind === 'video' && r.duration) el.querySelector('.badge2').textContent = extOf(f.name).toUpperCase() + ' · ' + mmss(r.duration);
     if (f.kind === 'pdf' && r.pages) el.querySelector('.meta .nm').textContent = `${f.name} · ${r.pages} ${t('pagesN')}`;
+    noteQuality(f, r);
   } catch (e) {
     const ph = el.querySelector('.ph');
     if (f.kind === 'video') { st.bad.add(f.path); markTile(el, f); if (ph) ph.innerHTML = `<span>${t('videoUnplayable')}</span>`; el.title = t('videoUnplayableTip'); }
     else if (ph) { ph.innerHTML = `<span>${t('noPreview')}</span>`; el.title = String(e?.message || e); }
   }
+}
+/* ---------- Qualitätshinweise: Auflösung, Schärfe, Doubletten ---------- */
+const isPhoto = (f) => f.kind === 'image' || f.kind === 'heic' || f.kind === 'raw';
+function noteQuality(f, r) {
+  if (!isPhoto(f)) return;
+  const q = { flags: qualityFlags(r), hash: r.hash, size: r.size, w: r.w, h: r.h, sharp: r.sharp, dup: [] };
+  // mit allen bereits analysierten Bildern dieser Ansicht vergleichen
+  for (const [p, o] of st.q) {
+    if (!o.hash || !q.hash) continue;
+    const d = hamming(o.hash, q.hash);
+    if (d <= 4 || (o.size === q.size && d <= 10)) { o.dup.push(f.path); q.dup.push(p); paintFlags(p); }
+  }
+  st.q.set(f.path, q);
+  paintFlags(f.path);
+}
+function flagList(path) {
+  const q = st.q.get(path); if (!q) return [];
+  const out = [];
+  if (q.flags.lowres) out.push({ cls: 'lowres ' + q.flags.lowres, icon: '▦', tip: t('qLowres', { w: q.w, h: q.h }) + (q.flags.lowres === 'bad' ? ' ' + t('qLowresBad') : '') });
+  if (q.flags.blur) out.push({ cls: 'blur', icon: '◌', tip: t('qBlur', { v: q.sharp }) });
+  if (q.dup.length) out.push({ cls: 'dup', icon: '⧉', tip: t('qDup', { n: q.dup.map((p) => fsx.baseName(p)).slice(0, 4).join(', ') + (q.dup.length > 4 ? ' …' : '') }) });
+  return out;
+}
+function paintFlags(path) {
+  const el = gridEl?.querySelector(`.tile[data-path="${CSS.escape(path)}"]`); if (!el) return;
+  el.querySelector('.qflags')?.remove();
+  const fl = flagList(path); if (!fl.length) return;
+  el.append(h('div.qflags', fl.map((x) => h('span.qf.' + x.cls.split(' ').join('.'), { title: x.tip }, x.icon))));
 }
 function selectAll() {
   let n = 0;
@@ -274,6 +305,7 @@ async function renderLb(onlyHead) {
   const f = st.list[lb.i]; const my = lb;
   const head = h('div.lb-top', [
     h('b', f.name + (f.kind === 'pdf' ? ' · ' + t('pageN', { p: lb.page || 1 }) : '')), h('span.dim', fsx.parentOf(f.path) || fsx.rootName()), h('span.dim.lbdate'),
+    ...flagList(f.path).map((x) => h('span.qtxt.' + x.cls.split(' ').join('.'), x.icon + ' ' + x.tip)),
     h('span.sp'),
     h('span.dim.mono', `${lb.i + 1} / ${st.list.length}`),
     h('button.btn', { type: 'button', onclick: closeLb }, t('closeEsc')),

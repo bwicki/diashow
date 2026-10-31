@@ -118,10 +118,52 @@ export async function imageBlob(path, page, kind = kindOf(path)) {
 const TW = 520;
 const thumbLimit = limiter(3);
 const thumbMem = new Map();
+/** Vorschaubild plus Qualitätskennzahlen: Originalgrösse, Schärfe, Wahrnehmungs-Hash. */
 async function shrink(blob) {
-  const bm = await createImageBitmap(blob, { resizeWidth: TW, resizeQuality: 'medium', imageOrientation: 'from-image' });
-  const c = new OffscreenCanvas(bm.width, bm.height); c.getContext('2d').drawImage(bm, 0, 0); bm.close();
-  return c.convertToBlob({ type: 'image/jpeg', quality: 0.8 });
+  const bm = await createImageBitmap(blob, { imageOrientation: 'from-image' });
+  const w = bm.width, hgt = bm.height;
+  const tw = Math.min(TW, w), th = Math.max(1, Math.round(hgt * tw / w));
+  const c = new OffscreenCanvas(tw, th); const ctx = c.getContext('2d');
+  ctx.imageSmoothingQuality = 'medium'; ctx.drawImage(bm, 0, 0, tw, th);
+  bm.close();
+  const q = analyse(c);
+  return { blob: await c.convertToBlob({ type: 'image/jpeg', quality: 0.8 }), w, h: hgt, ...q };
+}
+/* Schärfe: Varianz des Laplace-Operators auf einer 400 px breiten Graustufenfassung (Heuristik).
+   Hash: dHash 64 bit (9×8 Graustufen, Vergleich benachbarter Pixel) für Doubletten. */
+function analyse(src) {
+  const W = Math.min(400, src.width), H = Math.max(1, Math.round(src.height * W / src.width));
+  const a = new OffscreenCanvas(W, H); const ax = a.getContext('2d', { willReadFrequently: true }); ax.drawImage(src, 0, 0, W, H);
+  const d = ax.getImageData(0, 0, W, H).data; const g = new Float32Array(W * H);
+  for (let i = 0, j = 0; i < g.length; i++, j += 4) g[i] = 0.299 * d[j] + 0.587 * d[j + 1] + 0.114 * d[j + 2];
+  let sum = 0, sum2 = 0, n = 0;
+  for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
+    const i = y * W + x; const l = g[i - W] + g[i + W] + g[i - 1] + g[i + 1] - 4 * g[i];
+    sum += l; sum2 += l * l; n++;
+  }
+  const sharp = n ? sum2 / n - (sum / n) ** 2 : 0;
+  const b = new OffscreenCanvas(9, 8); const bx = b.getContext('2d', { willReadFrequently: true }); bx.drawImage(src, 0, 0, 9, 8);
+  const e = bx.getImageData(0, 0, 9, 8).data; let hash = '';
+  for (let y = 0; y < 8; y++) { let byte = 0; for (let x = 0; x < 8; x++) { const p = (y * 9 + x) * 4, q = p + 4; const l1 = e[p] + e[p + 1] + e[p + 2], l2 = e[q] + e[q + 1] + e[q + 2]; byte = (byte << 1) | (l1 > l2 ? 1 : 0); } hash += byte.toString(16).padStart(2, '0'); }
+  return { sharp: Math.round(sharp), hash };
+}
+
+/* ---------- Qualitätshinweise ---------- */
+export const QUALITY = { minLong: 1600, minShort: 900, badLong: 1000, blur: 60 };
+/** Hinweise aus einem Vorschau-Datensatz: lowres ('warn'|'bad'), blur (true). */
+export function qualityFlags(rec) {
+  const f = {};
+  if (rec?.w && rec?.h) {
+    const L = Math.max(rec.w, rec.h), S = Math.min(rec.w, rec.h);
+    if (L < QUALITY.badLong) f.lowres = 'bad'; else if (L < QUALITY.minLong || S < QUALITY.minShort) f.lowres = 'warn';
+  }
+  if (rec?.sharp != null && rec.sharp < QUALITY.blur) f.blur = true;
+  return f;
+}
+export function hamming(a, b) {
+  if (!a || !b || a.length !== b.length) return 64;
+  let d = 0; for (let i = 0; i < a.length; i += 2) { let x = parseInt(a.substr(i, 2), 16) ^ parseInt(b.substr(i, 2), 16); while (x) { d += x & 1; x >>= 1; } }
+  return d;
 }
 function videoFrame(file) {
   return new Promise((res, rej) => {
@@ -143,19 +185,19 @@ function videoFrame(file) {
 export async function thumb(path, page, front = false) {
   const kind = kindOf(path);
   const f = await fileOf(path);
-  const k = 't2|' + keyOf(path, f, page);
+  const k = 't3|' + keyOf(path, f, page);
   if (thumbMem.has(k)) return thumbMem.get(k);
   const p = (async () => {
     let rec = await idbGet('thumbs', k);
     if (!rec) {
       rec = await thumbLimit(async () => {
-        if (kind === 'video') { const r = await videoFrame(f); return { blob: r.blob, duration: r.duration }; }
+        if (kind === 'video') { const r = await videoFrame(f); return { blob: r.blob, duration: r.duration, w: r.w, h: r.h }; }
         if (kind === 'pdf') return { blob: await pdfPageBlob(path, page || 1, TW, 0.8), pages: await pdfPages(path) };
-        return { blob: await shrink(await imageBlob(path, page, kind)) };
+        return shrink(await imageBlob(path, page, kind));
       }, front);
       await idbSet('thumbs', k, rec);
     }
-    return { ...rec, url: URL.createObjectURL(rec.blob) };
+    return { ...rec, size: f.size, url: URL.createObjectURL(rec.blob) };
   })();
   thumbMem.set(k, p);
   p.catch(() => thumbMem.delete(k));

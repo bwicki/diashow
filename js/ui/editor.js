@@ -6,7 +6,7 @@ import { t } from '../i18n.js';
 import { $, h, clear, append, msg, dialog, mmss, load, save } from '../util.js';
 import * as fsx from '../fsx.js';
 import { thumb, dateOf, fileOf, forget, kindOf } from '../media.js';
-import { cur, changed, onChange, addTitle, TRANSITIONS } from '../show.js';
+import { cur, changed, onChange, addTitle, TRANSITIONS, DEF_WM } from '../show.js';
 import { titleNode, wmNode, tstyle, PRESETS, WM_DEFAULT, BUILTIN } from '../render.js';
 import { pickImage } from './picker.js';
 import { go } from '../app.js';
@@ -30,7 +30,7 @@ onChange((what) => { if (root?.classList.contains('on') && (what === 'slides' ||
 function renderBar() {
   clear($('edBar')).append(
     h('b', t('order')), h('span.note', t('orderHint')), h('span.sp'),
-    h('button.btn', { type: 'button', onclick: () => { const i = idx(selId); const s = addTitle(i < 0 ? 0 : i, t('titleDefault')); selectOnly(s.id); changed(true, 'slides'); } }, t('addTitle')),
+    h('button.btn', { type: 'button', onclick: newTitleDlg }, t('addTitle')),
     h('button.btn', { type: 'button', onclick: selectAllSlides }, t('selectAllSlides')),
     h('button.btn', { type: 'button', onclick: shuffle }, t('shuffleOnce')),
     h('button.btn', { type: 'button', onclick: sortByDate }, t('sortDate')),
@@ -273,6 +273,7 @@ function renderWhole(side) {
     chk(t('kenburns'), S.kenburns, (v) => { S.kenburns = v; }),
     chk(t('captions'), S.captions, (v) => { S.captions = v; }),
     chk(t('defWm'), S.defWm, (v) => { S.defWm = v; }),
+    h('button.btn.mini', { type: 'button', onclick: applyDefWmAll }, t('defWmAll')),
     h('div.lbl.mt', t('pool')),
     h('div.chips', TRANSITIONS.map((x) => h('button.chip' + (S.pool.includes(x) ? '.on' : ''), { type: 'button', onclick: () => { S.pool = S.pool.includes(x) ? S.pool.filter((y) => y !== x) : [...S.pool, x]; if (!S.pool.length) S.pool = ['fade']; changed(true, 'meta'); renderSide(); } }, t('tr_' + x)))),
     h('p.note', t('poolHint')),
@@ -282,6 +283,36 @@ function renderWhole(side) {
 function totalSeconds() {
   const S = cur.show.settings;
   return cur.show.slides.reduce((a, s) => a + (s.dur || (s.kind === 'video' ? (s._dur || S.dur) : S.dur)), 0);
+}
+
+/* ---------- Titelfolie einfügen (an der markierten Stelle) ---------- */
+async function newTitleDlg() {
+  const i = idx(selId); const n = cur.show.slides.length;
+  const title = h('input', { type: 'text', value: '', placeholder: t('titleDefault') });
+  const sub = h('input', { type: 'text', value: '', placeholder: t('subtitlePh') });
+  let where = n ? 'before' : 'end';
+  const opt = (v, label, dis) => h('label.check', h('input', { type: 'radio', name: 'tw', checked: v === where, disabled: dis, onchange: () => { where = v; } }), label);
+  const r = await dialog(t('addTitleTitle'), [
+    h('label.lbl', t('titleText')), title,
+    h('label.lbl', t('subtitle')), sub,
+    h('label.lbl', t('insertWhere')),
+    h('div.radios', [
+      opt('before', i >= 0 ? t('insBefore', { n: i + 1 }) : t('insBeforeSel'), i < 0),
+      opt('after', i >= 0 ? t('insAfter', { n: i + 1 }) : t('insAfterSel'), i < 0),
+      opt('start', t('insStart')), opt('end', t('insEnd')),
+    ]),
+    h('p.note', t('insHint')),
+  ], [{ label: t('cancel'), value: null }, { label: t('insert'), value: 'ok', primary: true }]);
+  if (r !== 'ok') return;
+  const at = where === 'before' ? i : where === 'after' ? i + 1 : where === 'start' ? 0 : n;
+  const s = addTitle(Math.max(0, at), title.value.trim() || t('titleDefault'), sub.value.trim());
+  selectOnly(s.id); changed(true, 'slides');
+  setTimeout(() => box()?.querySelector(`[data-id="${s.id}"]`)?.scrollIntoView({ block: 'center' }), 50);
+}
+function applyDefWmAll() {
+  let k = 0;
+  for (const s of cur.show.slides) if (s.type === 'file') { s.wm = { ...DEF_WM }; k++; }
+  changed(true, 'slides'); msg(t('defWmApplied', { n: k }));
 }
 
 /* ---------- Aktionen ---------- */

@@ -121,7 +121,7 @@ async function openDlg() {
   try {
     const obj = await fsx.readShow(chosen.file);
     if (obj.app !== 'diashow') throw new Error(t('notAShow'));
-    setShow(obj, chosen.file); changed(false, 'reload');
+    setShow(obj, chosen.file, chosen.mtime); changed(false, 'reload');
     msg(t('opened', { n: obj.name || chosen.name, k: obj.slides?.length || 0 }));
     go('ed');
   } catch (e) { msg(t('openFail') + ' ' + (e?.message || e), 'err'); }
@@ -140,9 +140,18 @@ export async function saveShow(as) {
     }
   }
   cur.show.name = name;
+  // Schutz: Datei wurde seit dem Öffnen/letzten Speichern anderswo geändert (anderer Rechner, anderes Fenster, Claude)
+  const target = fsx.safeName(name) + '.diashow.json';
+  if (target === cur.file) {
+    const disk = await fsx.showMtime(target);
+    if (disk && cur.mtime && disk > cur.mtime + 2000) {
+      const r = await dialog(t('conflictTitle'), h('p', t('conflictText', { n: name, d: fmtDateTime(disk) })), [{ label: t('cancel'), value: null }, { label: t('overwrite'), value: 'ok', primary: true }]);
+      if (r !== 'ok') return false;
+    }
+  }
   try {
-    const file = await fsx.writeShow(name, toJSON());
-    cur.file = file; cur.dirty = false; changed(false);
+    const { file, mtime } = await fsx.writeShow(name, toJSON());
+    cur.file = file; cur.mtime = mtime; cur.dirty = false; changed(false);
     msg(t('saved', { f: fsx.SHOWDIR + '/' + file }));
     return true;
   } catch (e) { msg(t('saveFail') + ' ' + (e?.message || e), 'err'); return false; }

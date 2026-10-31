@@ -44,6 +44,9 @@ werden nie verändert. Nach jedem Neustart von Chrome genügt ein Klick auf **Zu
   nimmt das Bild auf und öffnet sofort das nächste – so geht man einen Ordner zügig durch. Am Ende
   eines Ordners geht es automatisch im nächsten Ordner des Baums weiter.
   «Überspringen ›» (→), «‹ Zurück» (←), «Abwählen» (Leertaste), Esc schliesst.
+- **Qualitätshinweise** links oben im Bild: ▦ Auflösung für den Beamer knapp oder zu klein,
+  ◌ vermutlich unscharf, ⧉ mutmassliche Doublette bzw. sehr ähnliches Bild. Die Hinweise sind eine
+  Heuristik (dunkle oder kontrastarme Bilder können als «unscharf» erscheinen).
 - **PDF:** in der Grossansicht geht «Auswählen & weiter» Seite für Seite; die Seitenleiste zeigt alle
   Seiten mit Klickbox.
 - Unten die **Ablage** mit Anzahl und Miniaturen, «Weiter zur Diashow».
@@ -51,7 +54,8 @@ werden nie verändert. Nach jedem Neustart von Chrome genügt ein Klick auf **Zu
 ### 2 · Diashow bearbeiten
 
 - Alle Dias als Kacheln; **Ziehen** ändert die Reihenfolge (Alt+←/→ verschiebt das gewählte Dia,
-  Entf entfernt es). Knöpfe: **+ Titelfolie**, **Einmal mischen**, **Nach Datum ordnen**.
+  Entf entfernt es). **+ Titelfolie** fragt nach Titel, Untertitel und Ort (vor/nach dem markierten Dia,
+  Anfang, Schluss). Weitere Knöpfe: **Einmal mischen**, **Nach Datum ordnen**.
 - Je Dia: **Bildtext** (auf dem Beamer), **Notiz** (nur Referentensicht), **Anzeigedauer**,
   **Übergang** (oder Zufall), bei Videos **mit Ton** ja/nein.
 - Ganze Diashow: **Auto/Manuell**, Standard- und Übergangsdauer, Reihenfolge **wie festgelegt** oder

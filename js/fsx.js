@@ -116,7 +116,11 @@ export async function writeShow(name, obj) {
   await w.write(JSON.stringify(obj, null, 1));
   await w.close();
   invalidate(SHOWDIR);
-  return file;
+  return { file, mtime: (await fh.getFile()).lastModified };
+}
+/** Änderungszeit einer Diashow-Datei (0, wenn es sie nicht gibt). */
+export async function showMtime(file) {
+  try { const d = await dirHandle(SHOWDIR, true); return (await (await d.getFileHandle(file)).getFile()).lastModified; } catch { return 0; }
 }
 export async function showExists(name) {
   try { const d = await dirHandle(SHOWDIR, true); await d.getFileHandle(safeName(name) + '.diashow.json'); return true; } catch { return false; }

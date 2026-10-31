@@ -1,5 +1,17 @@
 # Changelog — Diashow
 
+## 1.2.0 — 2026-11-01
+
+- **Qualitätshinweise in «Bilder auswählen»** (Symbole links oben im Bild, Details beim Darüberfahren und in
+  der Grossansicht): ▦ Auflösung knapp (< 1600×900 px) bzw. deutlich zu klein (lange Seite < 1000 px),
+  ◌ vermutlich unscharf (Varianz des Laplace-Operators, Heuristik), ⧉ mutmassliche Doublette / sehr
+  ähnliches Bild in derselben Ansicht (Wahrnehmungs-Hash). Vorschaubilder werden dazu einmal neu berechnet.
+- **Titelfolie einfügen** mit kurzem Dialog: Titel, Untertitel und Ort (vor/nach dem markierten Dia,
+  am Anfang, am Schluss); Vorgabe «vor dem markierten Dia».
+- «Wicki-Logo jetzt auf alle Bild-Dias setzen» (Ganze Diashow).
+- **Schutz vor Überschreiben:** Wurde die Diashow-Datei seit dem Öffnen anderswo geändert, fragt
+  «Speichern» nach, statt die neuere Fassung stillschweigend zu überschreiben.
+
 ## 1.1.2 — 2026-10-31
 
 - «Diashow bearbeiten»: Schieberegler «Grösse» für die Kacheln (klein = viele Dias auf einen Blick, um

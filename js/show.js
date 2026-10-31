@@ -20,7 +20,7 @@ export function newShow(name = '') {
 }
 
 /** Aktueller Arbeitsstand (eine Diashow), mit Beobachtern und Entwurfs-Sicherung. */
-export const cur = { show: load('diashow.draft', null) || newShow(), dirty: load('diashow.dirty', false), file: load('diashow.file', null) };
+export const cur = { show: load('diashow.draft', null) || newShow(), dirty: load('diashow.dirty', false), file: load('diashow.file', null), mtime: load('diashow.mtime', 0) };
 cur.show.settings = { ...defaultSettings(), ...(cur.show.settings || {}) };
 const subs = new Set();
 export const onChange = (fn) => { subs.add(fn); return () => subs.delete(fn); };
@@ -28,7 +28,7 @@ let saveTimer = null;
 export function changed(dirty = true, what = 'all') {
   if (dirty) cur.dirty = true;
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => { save('diashow.draft', cur.show); save('diashow.dirty', cur.dirty); save('diashow.file', cur.file); }, 300);
+  saveTimer = setTimeout(() => { save('diashow.draft', cur.show); save('diashow.dirty', cur.dirty); save('diashow.file', cur.file); save('diashow.mtime', cur.mtime); }, 300);
   for (const fn of subs) fn(what);
 }
 
@@ -49,17 +49,17 @@ export function toggleSlide(path, page) {
   if (hasSlide(path, page)) removeSlide(path, page); else addSlide(path, page);
   changed(true, 'slides');
 }
-export function addTitle(at, text) {
-  const s = { id: uid(), type: 'title', cap: text, note: '', dur: null, tr: '', ts: { ...PRESETS.black } };
+export function addTitle(at, text, sub = '') {
+  const s = { id: uid(), type: 'title', cap: text, sub, note: '', dur: null, tr: '', ts: { ...PRESETS.black } };
   cur.show.slides.splice(at == null ? cur.show.slides.length : at, 0, s);
   changed(true, 'slides');
   return s;
 }
-export function setShow(obj, file) {
+export function setShow(obj, file, mtime = 0) {
   const s = { ...newShow(), ...obj };
   s.settings = { ...defaultSettings(), ...(obj.settings || {}) };
   s.slides = (obj.slides || []).map((x) => ({ id: x.id || uid(), cap: '', note: '', dur: null, tr: '', sound: false, ...x, kind: x.type === 'file' ? kindOf(x.path) : undefined }));
-  cur.show = s; cur.file = file || null; cur.dirty = false;
+  cur.show = s; cur.file = file || null; cur.mtime = mtime; cur.dirty = false;
   changed(false);
 }
 export function toJSON() {
