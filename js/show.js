@@ -1,0 +1,72 @@
+/* Diashow — Datenmodell einer Diashow und der aktuelle Arbeitsstand.
+ *
+ * Gespeichert wird nur eine kleine JSON-Datei in _DIASHOWS mit Verweisen
+ * (Pfad relativ zum Stammordner) – nie Bildkopien.
+ */
+import { uid, load, save } from './util.js';
+import { kindOf } from './media.js';
+
+export const TRANSITIONS = ['fade', 'slide', 'zoom', 'wipe', 'cube', 'black', 'circle'];
+
+export function defaultSettings() {
+  return { mode: 'auto', dur: 6, trDur: 1.0, order: 'fixed', loop: true, kenburns: true, captions: true, pool: [...TRANSITIONS], fit: 'contain' };
+}
+export function newShow(name = '') {
+  return { app: 'diashow', format: 1, name, created: new Date().toISOString(), modified: null, settings: defaultSettings(), slides: [] };
+}
+
+/** Aktueller Arbeitsstand (eine Diashow), mit Beobachtern und Entwurfs-Sicherung. */
+export const cur = { show: load('diashow.draft', null) || newShow(), dirty: load('diashow.dirty', false), file: load('diashow.file', null) };
+cur.show.settings = { ...defaultSettings(), ...(cur.show.settings || {}) };
+const subs = new Set();
+export const onChange = (fn) => { subs.add(fn); return () => subs.delete(fn); };
+let saveTimer = null;
+export function changed(dirty = true, what = 'all') {
+  if (dirty) cur.dirty = true;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => { save('diashow.draft', cur.show); save('diashow.dirty', cur.dirty); save('diashow.file', cur.file); }, 300);
+  for (const fn of subs) fn(what);
+}
+
+export const slideKey = (path, page) => (page ? `${path}#${page}` : path);
+const keyIndex = () => new Map(cur.show.slides.filter((s) => s.type === 'file').map((s, i) => [slideKey(s.path, s.page), s]));
+export function hasSlide(path, page) { return cur.show.slides.some((s) => s.type === 'file' && s.path === path && (s.page || 0) === (page || 0)); }
+export function countPages(path) { return cur.show.slides.filter((s) => s.type === 'file' && s.path === path && s.page).length; }
+export function addSlide(path, page) {
+  if (hasSlide(path, page)) return;
+  cur.show.slides.push({ id: uid(), type: 'file', path, page: page || undefined, kind: kindOf(path), cap: '', note: '', dur: null, tr: '', sound: false });
+}
+export function removeSlide(path, page) {
+  cur.show.slides = cur.show.slides.filter((s) => !(s.type === 'file' && s.path === path && (s.page || 0) === (page || 0)));
+}
+export function toggleSlide(path, page) {
+  if (hasSlide(path, page)) removeSlide(path, page); else addSlide(path, page);
+  changed(true, 'slides');
+}
+export function addTitle(at, text) {
+  const s = { id: uid(), type: 'title', cap: text, note: '', dur: null, tr: '' };
+  cur.show.slides.splice(at == null ? cur.show.slides.length : at, 0, s);
+  changed(true, 'slides');
+  return s;
+}
+export function setShow(obj, file) {
+  const s = { ...newShow(), ...obj };
+  s.settings = { ...defaultSettings(), ...(obj.settings || {}) };
+  s.slides = (obj.slides || []).map((x) => ({ id: x.id || uid(), cap: '', note: '', dur: null, tr: '', sound: false, ...x, kind: x.type === 'file' ? kindOf(x.path) : undefined }));
+  cur.show = s; cur.file = file || null; cur.dirty = false;
+  changed(false);
+}
+export function toJSON() {
+  const s = cur.show;
+  return {
+    app: 'diashow', format: 1, name: s.name, created: s.created, modified: new Date().toISOString(),
+    settings: s.settings,
+    slides: s.slides.map((x) => {
+      const o = { id: x.id, type: x.type };
+      if (x.type === 'file') { o.path = x.path; if (x.page) o.page = x.page; if (x.kind === 'video') o.sound = !!x.sound; }
+      if (x.cap) o.cap = x.cap; if (x.note) o.note = x.note; if (x.dur) o.dur = x.dur; if (x.tr) o.tr = x.tr;
+      return o;
+    }),
+  };
+}
+export { keyIndex };

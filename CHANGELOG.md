@@ -1,0 +1,24 @@
+# Changelog — Diashow
+
+## 1.0.0 — 2026-10-31
+
+Erste Version für die Vorträge ab 05.11.2026.
+
+- **Bilder auswählen:** Stammordner einmalig in Chrome freigeben (File System Access API), Ordnerbaum,
+  grosse Vorschaukacheln mit Klickbox, Grösse per Schieberegler, Sortierung nach Ordner oder
+  Aufnahmedatum (EXIF → Dateiname → Änderungsdatum), Filter Bilder/PDF/Video, Unterordner,
+  «Alle hier wählen», Grossansicht mit ← → und Leertaste. Bilder aus beliebigen Ordnern kombinierbar.
+- **Formate:** JPG/PNG/WebP/GIF/AVIF, HEIC (lokale Umwandlung mit heic2any), RAW (eingebettetes
+  JPEG; umbenannte JPEGs werden erkannt), PDF (einzelne Seiten wählbar, pdf.js), Video MP4/MOV/WebM
+  (Abspielbarkeit je nach Codec; nicht abspielbare werden markiert).
+- **Diashow bearbeiten:** Reihenfolge per Ziehen, Titelfolien, Bildtext, Notiz für die Referentensicht,
+  Dauer und Übergang je Dia, Video mit/ohne Ton je Dia, einmal mischen, nach Datum ordnen,
+  fehlende Dateien per Dateiname neu suchen.
+- **Gesamteinstellungen:** Auto/Manuell, Standard- und Übergangsdauer, Reihenfolge fest/zufällig,
+  Endlosschleife, Ken-Burns-Bewegung, Bildtexte, Bildfüllung, Pool der Zufallsübergänge
+  (Überblenden, Schieben, Zoom, Wischen, Würfel, Über Schwarz, Kreis).
+- **Speichern/Öffnen:** kleine JSON-Datei mit Verweisen in `_DIASHOWS` (keine Bildkopien).
+- **Vorführen:** Vorbereitung aller Dias vorab, Vollbild auf dem Beamer (Window Management API),
+  Referentensicht als eigenes Fenster (aktuelles/nächstes Dia, Notiz, Laufzeit, Restzeit, Uhrzeit,
+  Leiste aller Dias), Klicker-Test, Tasten für Logitech-Presenter (Bild↑/↓, F5, Esc, «.»/B).
+- Meldungen bleiben stehen und sind kopierbar; DE/EN; hell/dunkel; offline-fähig (Service Worker).

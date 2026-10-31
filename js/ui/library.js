@@ -1,0 +1,252 @@
+/* Diashow — Schritt 1: Bilder auswählen (Ordnerbaum, grosse Vorschau, Klickbox, Grossansicht). */
+import { t } from '../i18n.js';
+import { $, h, clear, load, save, msg, dialog, fmtDate, mmss } from '../util.js';
+import * as fsx from '../fsx.js';
+import { kindOf, extOf, thumb, dateOf, imageBlob, pdfPages, fileOf } from '../media.js';
+import { cur, hasSlide, toggleSlide, addSlide, countPages, changed, onChange } from '../show.js';
+import { go } from '../app.js';
+
+const st = {
+  path: load('diashow.lib.path', ''),
+  open: new Set(load('diashow.lib.open', [''])),
+  sub: load('diashow.lib.sub', true),
+  sort: load('diashow.lib.sort', 'folder'),
+  filter: load('diashow.lib.filter', 'all'),
+  size: load('diashow.lib.size', 240),
+  list: [],
+  bad: new Set(),   // Pfade, die nicht darstellbar sind (z. B. Video-Codec)
+};
+const persist = () => { save('diashow.lib.path', st.path); save('diashow.lib.open', [...st.open]); save('diashow.lib.sub', st.sub); save('diashow.lib.sort', st.sort); save('diashow.lib.filter', st.filter); save('diashow.lib.size', st.size); };
+
+let root = null; let gridEl = null; let io = null; let token = 0;
+
+export function renderLibrary(el) {
+  root = el; clear(el); el.classList.remove('pad');
+  el.append(h('div.lib', [
+    h('aside.tree', [
+      h('div.rootbox', [h('div.lbl', t('rootFolder')), h('div.rootname', '📁 ' + fsx.rootName())]),
+      h('div.tree-nodes#treeNodes'),
+    ]),
+    h('div.libmain', [h('div.toolbar#libBar'), h('div.grid#grid')]),
+    h('div.tray#tray'),
+  ]));
+  gridEl = $('grid');
+  gridEl.style.setProperty('--tw', st.size + 'px');
+  renderTree(); renderBar(); renderTray(); loadGrid();
+}
+onChange((what) => { if (root?.classList.contains('on') && what === 'slides') { renderTray(); refreshTiles(); } });
+
+/* ---------- Ordnerbaum ---------- */
+async function renderTree() {
+  const box = $('treeNodes'); if (!box) return;
+  const frag = document.createDocumentFragment();
+  async function node(path, depth) {
+    const name = path ? fsx.baseName(path) : fsx.rootName();
+    let sub = [];
+    try { sub = (await fsx.listDir(path)).dirs; } catch { /* gesperrt */ }
+    const isOpen = st.open.has(path);
+    const sel = cur.show.slides.filter((s) => s.type === 'file' && (path === '' || s.path.startsWith(path + '/'))).length;
+    const n = h('div.node' + (path === st.path ? '.on' : '') + (path === fsx.SHOWDIR ? '.dim' : ''), { style: { paddingLeft: 8 + depth * 14 + 'px' }, title: path || fsx.rootName() },
+      h('span.tw', { onclick: (e) => { e.stopPropagation(); if (!sub.length) return; isOpen ? st.open.delete(path) : st.open.add(path); persist(); renderTree(); } }, sub.length ? (isOpen ? '▾' : '▸') : ''),
+      h('span.nm', name), sel ? h('span.selc', String(sel)) : null);
+    n.onclick = () => { st.path = path; st.open.add(path); persist(); renderTree(); renderBar(); loadGrid(); };
+    frag.appendChild(n);
+    if (isOpen) for (const d of sub) await node(path ? path + '/' + d : d, depth + 1);
+  }
+  await node('', 0);
+  clear(box).appendChild(frag);
+}
+
+/* ---------- Werkzeugleiste ---------- */
+function renderBar() {
+  const bar = $('libBar'); if (!bar) return;
+  const sel = (id, val, opts, fn) => h('select#' + id, { onchange: (e) => fn(e.target.value) }, opts.map(([v, l]) => h('option', { value: v, selected: v === val }, l)));
+  clear(bar).append(
+    h('div.crumbs', (st.path || fsx.rootName()).split('/').join(' › ')),
+    h('span.sp'),
+    h('label.ctl', t('sort'), sel('lSort', st.sort, [['folder', t('byFolder')], ['date', t('byDate')]], (v) => { st.sort = v; persist(); loadGrid(); })),
+    h('label.ctl', t('show'), sel('lFilter', st.filter, [['all', t('fAll')], ['img', t('fImg')], ['pdf', t('fPdf')], ['video', t('fVideo')]], (v) => { st.filter = v; persist(); loadGrid(); })),
+    h('label.ctl', h('input', { type: 'checkbox', checked: st.sub, onchange: (e) => { st.sub = e.target.checked; persist(); loadGrid(); } }), t('subfolders')),
+    h('label.ctl', t('size'), h('input', { type: 'range', min: 140, max: 520, value: st.size, oninput: (e) => { st.size = +e.target.value; gridEl.style.setProperty('--tw', st.size + 'px'); }, onchange: persist })),
+    h('button.btn', { type: 'button', onclick: selectAll }, t('selectAll')),
+    h('button.btn.icon', { type: 'button', title: t('reload'), onclick: () => { fsx.invalidate(); renderTree(); loadGrid(); } }, '↻'),
+  );
+}
+
+/* ---------- Raster ---------- */
+async function loadGrid() {
+  const my = ++token;
+  clear(gridEl).append(h('div.loading', t('loading')));
+  let files;
+  try {
+    files = (st.sub && st.path !== '') ? await fsx.walk(st.path, (d, f) => { if (my === token) gridEl.firstChild.textContent = t('loadingN', { d, f }); }, (p) => p === fsx.SHOWDIR && st.path !== fsx.SHOWDIR) : (await fsx.listDir(st.path)).files;
+  } catch (e) { if (my === token) clear(gridEl).append(h('p.err', t('listFail') + ' ' + (e?.message || e))); return; }
+  if (my !== token) return;
+  let list = files.map((f) => ({ path: f.path, name: f.name, kind: kindOf(f.name) }));
+  const hidden = list.filter((f) => !f.kind).length;
+  list = list.filter((f) => f.kind);
+  if (st.filter === 'img') list = list.filter((f) => f.kind !== 'pdf' && f.kind !== 'video');
+  if (st.filter === 'pdf') list = list.filter((f) => f.kind === 'pdf');
+  if (st.filter === 'video') list = list.filter((f) => f.kind === 'video');
+  if (st.sort === 'date') {
+    let n = 0;
+    await Promise.all(list.map(async (f) => { try { f.date = await dateOf(f.path); } catch { f.date = new Date(0); } n++; if (my === token && n % 10 === 0) gridEl.firstChild.textContent = t('readingDates', { n, k: list.length }); }));
+    if (my !== token) return;
+    list.sort((a, b) => a.date - b.date);
+  }
+  st.list = list;
+  renderGrid(hidden);
+}
+function groupOf(f) {
+  if (st.sort === 'date') return f.date && f.date.getTime() ? f.date.toLocaleDateString(document.documentElement.lang === 'en' ? 'en-GB' : 'de-CH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '–';
+  const rel = fsx.parentOf(f.path);
+  return rel === st.path ? (st.path ? fsx.baseName(st.path) : fsx.rootName()) : rel.slice(st.path ? st.path.length + 1 : 0);
+}
+function renderGrid(hidden) {
+  clear(gridEl);
+  io?.disconnect();
+  io = new IntersectionObserver((ents) => { for (const e of ents) if (e.isIntersecting) { io.unobserve(e.target); fillThumb(e.target); } }, { root: gridEl, rootMargin: '800px' });
+  if (!st.list.length) { gridEl.append(h('p.empty', st.path === '' ? t('pickFolder') : t('emptyFolder'))); return; }
+  let last = null; let gi = 0;
+  st.list.forEach((f, i) => {
+    const g = groupOf(f);
+    if (g !== last) { const cnt = st.list.filter((x) => groupOf(x) === g).length; gridEl.append(h('div.ghead', h('span', g), h('span.dim', `${cnt}`))); last = g; gi++; }
+    gridEl.append(tile(f, i));
+  });
+  if (hidden) gridEl.append(h('p.note.gfoot', t('hiddenFiles', { n: hidden })));
+}
+function tile(f, i) {
+  const el = h('div.tile', { dataset: { i, path: f.path } }, [
+    h('div.ph', h('span', extOf(f.name).toUpperCase())),
+    f.kind === 'pdf' ? null : h('button.cb', { type: 'button', title: t('select'), onclick: (e) => { e.stopPropagation(); if (st.bad.has(f.path)) return; toggleSlide(f.path); } }),
+    h('span.badge2', extOf(f.name).toUpperCase()),
+    h('div.meta', h('span.nm', f.name), f.date ? h('span', fmtDate(f.date)) : null),
+  ]);
+  el.onclick = () => openLb(i);
+  markTile(el, f);
+  io.observe(el);
+  return el;
+}
+function markTile(el, f) {
+  if (f.kind === 'pdf') { const n = countPages(f.path); el.classList.toggle('sel', n > 0); el.querySelector('.badge2').textContent = 'PDF' + (n ? ' · ' + t('pagesSel', { n }) : ''); }
+  else el.classList.toggle('sel', hasSlide(f.path));
+  el.classList.toggle('bad', st.bad.has(f.path));
+}
+function refreshTiles() { gridEl?.querySelectorAll('.tile').forEach((el) => { const f = st.list[+el.dataset.i]; if (f) markTile(el, f); }); }
+async function fillThumb(el) {
+  const f = st.list[+el.dataset.i]; if (!f) return;
+  try {
+    const r = await thumb(f.path, f.kind === 'pdf' ? 1 : undefined);
+    const img = h('img', { src: r.url, alt: '', loading: 'lazy', draggable: false });
+    el.querySelector('.ph').replaceWith(img);
+    if (f.kind === 'video' && r.duration) el.querySelector('.badge2').textContent = extOf(f.name).toUpperCase() + ' · ' + mmss(r.duration);
+    if (f.kind === 'pdf' && r.pages) el.querySelector('.meta .nm').textContent = `${f.name} · ${r.pages} ${t('pagesN')}`;
+  } catch (e) {
+    const ph = el.querySelector('.ph');
+    if (f.kind === 'video') { st.bad.add(f.path); markTile(el, f); if (ph) ph.innerHTML = `<span>${t('videoUnplayable')}</span>`; el.title = t('videoUnplayableTip'); }
+    else if (ph) { ph.innerHTML = `<span>${t('noPreview')}</span>`; el.title = String(e?.message || e); }
+  }
+}
+function selectAll() {
+  let n = 0;
+  for (const f of st.list) if (f.kind !== 'pdf' && !st.bad.has(f.path) && !hasSlide(f.path)) { addSlide(f.path); n++; }
+  changed(true, 'slides');
+  msg(t('addedN', { n }));
+}
+
+/* ---------- Ablage unten ---------- */
+let trayToken = 0;
+async function renderTray() {
+  const tr = $('tray'); if (!tr) return;
+  const my = ++trayToken;
+  const slides = cur.show.slides.filter((s) => s.type === 'file');
+  const strip = h('div.strip');
+  clear(tr).append(
+    h('b', t('selectedN', { n: slides.length })), strip,
+    h('button.btn', { type: 'button', disabled: !slides.length, onclick: clearSel }, t('clearSel')),
+    h('button.btn.primary', { type: 'button', onclick: () => go('ed') }, t('toEditor')),
+  );
+  for (const s of slides.slice(-24).reverse()) {
+    const d = h('div.mini'); strip.appendChild(d);
+    thumb(s.path, s.page).then((r) => { if (my === trayToken) d.appendChild(h('img', { src: r.url, alt: '' })); }).catch(() => {});
+  }
+}
+async function clearSel() {
+  const r = await dialog(t('clearSel'), h('p', t('clearSelQ')), [{ label: t('cancel'), value: null }, { label: t('clearSel'), value: 'ok', primary: true }]);
+  if (r !== 'ok') return;
+  cur.show.slides = cur.show.slides.filter((s) => s.type !== 'file');
+  changed(true, 'slides');
+}
+
+/* ---------- Grossansicht ---------- */
+let lb = null;
+function openLb(i) {
+  closeLb();
+  lb = { i, url: null, el: h('div.lb') };
+  document.body.appendChild(lb.el);
+  document.addEventListener('keydown', lbKey, true);
+  renderLb();
+}
+function closeLb() {
+  if (!lb) return;
+  if (lb.url) URL.revokeObjectURL(lb.url);
+  lb.el.querySelectorAll('video').forEach((v) => v.pause());
+  lb.el.remove(); lb = null;
+  document.removeEventListener('keydown', lbKey, true);
+}
+function lbKey(e) {
+  if (!lb) return;
+  if (e.target.tagName === 'INPUT' && e.target.type === 'text') return;
+  if (e.key === 'Escape') { e.preventDefault(); closeLb(); }
+  else if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
+  else if (e.key === ' ') { e.preventDefault(); const f = st.list[lb.i]; if (f.kind === 'pdf') toggleSlide(f.path, lb.page || 1); else if (!st.bad.has(f.path)) toggleSlide(f.path); renderLb(true); }
+}
+function step(d) { if (!lb) return; lb.i = (lb.i + d + st.list.length) % st.list.length; lb.page = 1; renderLb(); }
+async function renderLb(onlyHead) {
+  const f = st.list[lb.i]; const my = lb;
+  const isSel = f.kind === 'pdf' ? hasSlide(f.path, lb.page || 1) : hasSlide(f.path);
+  const head = h('div.lb-top', [
+    h('b', f.name), h('span.dim', fsx.parentOf(f.path) || fsx.rootName()), h('span.dim.lbdate'),
+    h('span.sp'),
+    f.kind === 'pdf' ? null : h('label.ctl.big', h('input', { type: 'checkbox', checked: isSel, disabled: st.bad.has(f.path), onchange: () => toggleSlide(f.path) }), t('inShow')),
+    h('button.btn', { type: 'button', onclick: closeLb }, t('closeEsc')),
+  ]);
+  if (onlyHead && lb.el.firstChild) { lb.el.firstChild.replaceWith(head); fillDate(f, head); renderPdfStrip(f); return; }
+  if (lb.url) { URL.revokeObjectURL(lb.url); lb.url = null; }
+  const stage = h('div.lb-stage', [h('div.loading', t('loading'))]);
+  const bot = h('div.lb-bot', h('span.note', t('lbHint')));
+  clear(lb.el).append(head, stage, bot, h('button.lb-nav.l', { type: 'button', onclick: () => step(-1) }, '‹'), h('button.lb-nav.r', { type: 'button', onclick: () => step(1) }, '›'));
+  fillDate(f, head);
+  try {
+    let node;
+    if (f.kind === 'video') {
+      const file = await fileOf(f.path); lb.url = URL.createObjectURL(file);
+      node = h('video', { src: lb.url, controls: true, autoplay: true, playsInline: true });
+      node.onerror = () => { st.bad.add(f.path); stage.replaceChildren(h('p.err', t('videoUnplayableTip'))); };
+    } else {
+      if (f.kind === 'pdf') { lb.page = lb.page || 1; renderPdfStrip(f); }
+      const blob = await imageBlob(f.path, f.kind === 'pdf' ? lb.page : undefined, f.kind);
+      if (my !== lb) return;
+      lb.url = URL.createObjectURL(blob);
+      node = h('img', { src: lb.url, alt: f.name });
+    }
+    if (my !== lb) return;
+    stage.replaceChildren(node);
+  } catch (e) { if (my === lb) stage.replaceChildren(h('p.err', t('noPreview') + ': ' + (e?.message || e))); }
+}
+async function fillDate(f, head) { try { const d = await dateOf(f.path); const s = head.querySelector('.lbdate'); if (s) s.textContent = d.toLocaleString('de-CH', { dateStyle: 'medium', timeStyle: 'short' }); } catch { /* egal */ } }
+async function renderPdfStrip(f) {
+  if (!lb || f.kind !== 'pdf') return;
+  const bot = lb.el.querySelector('.lb-bot');
+  let n = 1; try { n = await pdfPages(f.path); } catch (e) { bot.replaceChildren(h('p.err', String(e?.message || e))); return; }
+  const strip = h('div.pages');
+  bot.replaceChildren(h('div.note', t('pdfHint')), strip);
+  for (let p = 1; p <= n; p++) {
+    const pg = h('div.pg' + (hasSlide(f.path, p) ? '.sel' : '') + (p === lb.page ? '.cur' : ''), { title: t('pageN', { p }) },
+      h('button.cb', { type: 'button', onclick: (e) => { e.stopPropagation(); toggleSlide(f.path, p); renderLb(true); } }), h('span.pn', String(p)));
+    pg.onclick = () => { lb.page = p; renderLb(); };
+    strip.appendChild(pg);
+    thumb(f.path, p).then((r) => pg.prepend(h('img', { src: r.url, alt: '' }))).catch(() => {});
+  }
+}
