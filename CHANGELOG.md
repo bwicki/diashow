@@ -1,5 +1,9 @@
 # Changelog — Diashow
 
+## 1.0.4 — 2026-10-31
+
+- Helles Favicon und App-Icon (Variante V3: Ballon mit ▶), dazu favicon.ico und Apple-Touch-Icon.
+
 ## 1.0.3 — 2026-10-31
 
 - Grossansicht: «Auswählen & weiter» springt am Ende eines Ordners automatisch in den nächsten Ordner

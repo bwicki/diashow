@@ -9,7 +9,7 @@ import { APP } from './js/version.js';
 const CACHE = APP.cache;
 const SHELL = [
   './', 'index.html', 'presenter.html', 'manifest.webmanifest', 'css/base.css', 'css/app.css', 'img/wicki-logo.png',
-  'icons/favicon.svg', 'icons/icon-192.png', 'icons/icon-512.png',
+  'icons/favicon.svg', 'icons/favicon.ico', 'icons/apple-touch-icon.png', 'icons/icon-192.png', 'icons/icon-512.png',
   'js/version.js', 'js/i18n.js', 'js/util.js', 'js/fsx.js', 'js/media.js', 'js/show.js', 'js/app.js',
   'js/ui/library.js', 'js/ui/editor.js', 'js/ui/present.js',
   'js/vendor/heic2any.min.js', 'js/vendor/pdf.min.js', 'js/vendor/pdf.worker.min.js', 'js/vendor/exifr.umd.js',
