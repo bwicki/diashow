@@ -39,7 +39,7 @@ export function countPages(path) { return cur.show.slides.filter((s) => s.type =
 export function addSlide(path, page) {
   if (hasSlide(path, page)) return;
   const s = { id: uid(), type: 'file', path, page: page || undefined, kind: kindOf(path), cap: '', note: '', dur: null, tr: '', sound: false };
-  if (cur.show.settings.defWm) s.wm = { ...DEF_WM };
+  if (cur.show.settings.defWm) s.wm = { ...(cur.show.settings.wmDefault || DEF_WM) };
   cur.show.slides.push(s);
 }
 export function removeSlide(path, page) {

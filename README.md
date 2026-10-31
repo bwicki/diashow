@@ -65,7 +65,10 @@ werden nie verändert. Nach jedem Neustart von Chrome genügt ein Klick auf **Zu
   Wasserzeichen und Entfernen gelten dann für alle markierten Dias.
 - **Titelfolien gestalten:** Titel, Untertitel, Vorlagen, Hintergrund (Verlauf, Farbe oder Bild mit
   Abdunkeln), Textfarbe und -grösse, Schriftart, Ausrichtung, Logo mit Position und Grösse.
-- **Wasserzeichen:** Logo über einzelnen oder markierten Dias (Position, Grösse, Deckkraft);
+- **Filter** «Zeigen»: nur mit Hinweisen, Auflösung, unscharf, Doublette, Dateityp, Titelfolien, ohne
+  Wasserzeichen. «Alle markieren» markiert nur die sichtbaren Dias.
+- **Wasserzeichen:** Logo über einzelnen oder markierten Dias (Position, Grösse, Deckkraft, farbige Platte
+  für transparente Logos); «Dieses Wasserzeichen auf alle Bild-Dias übernehmen» setzt es zugleich als Standard;
   verschiedene Logos in einer Diashow sind möglich. Logos ausserhalb des Stammordners werden einmalig
   nach `_DIASHOWS/Logos` kopiert.
 - Fehlt eine Datei (umbenannt/verschoben), ist das Dia rot markiert; **Per Dateiname neu suchen**

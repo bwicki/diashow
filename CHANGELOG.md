@@ -1,5 +1,17 @@
 # Changelog — Diashow
 
+## 1.3.0 — 2026-11-01
+
+- **Wasserzeichen:** Grösse (2–40 % der Bildhöhe), Deckkraft und Position ändern sich sofort, auch bei
+  vielen markierten Dias (nur noch Stil statt Neuaufbau). Logo «Ersetzen …». Neu: **farbige Platte hinter
+  dem Logo** (Farbe, Deckkraft) für transparente Logos auf dunklen Bildern. Vorschau auch bei Mehrfachauswahl.
+- Knopf **«Dieses Wasserzeichen auf alle Bild-Dias übernehmen»** jetzt direkt unter den Wasserzeichen-Feldern;
+  das übernommene Wasserzeichen gilt danach als Standard für neue Dias (statt fest des Wicki-Logos).
+- **Filter in «Diashow bearbeiten»:** nur mit Hinweisen, Auflösung, unscharf, Doublette, JPG/PNG, HEIC, RAW,
+  PDF, Videos, Titelfolien, ohne Wasserzeichen. «Alle markieren» markiert nur die sichtbaren Dias.
+- Qualitätshinweise auch auf den Kacheln in «Diashow bearbeiten» (Doubletten innerhalb der Diashow mit Dia-Nummer).
+- Menü ≡ → **Beamer-Auflösung für Hinweise** (1280×720 bis 3840×2160); die Grenzwerte richten sich danach.
+
 ## 1.2.0 — 2026-11-01
 
 - **Qualitätshinweise in «Bilder auswählen»** (Symbole links oben im Bild, Details beim Darüberfahren und in

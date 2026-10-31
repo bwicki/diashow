@@ -22,7 +22,7 @@ export const PRESETS = {
   black: { bg: 'solid', c1: '#000000', c2: '#000000', color: '#ffffff' },
   white: { bg: 'solid', c1: '#ffffff', c2: '#ffffff', color: '#12161c' },
 };
-export const WM_DEFAULT = { path: '', pos: 'br', size: 12, op: 0.85 };
+export const WM_DEFAULT = { path: '', pos: 'br', size: 12, op: 0.85, plate: false, plateColor: '#ffffff', plateOp: 0.85 };
 export const FONTS = {
   sans: "Inter, 'Segoe UI', system-ui, sans-serif",
   serif: "Georgia, 'Times New Roman', serif",
@@ -76,10 +76,24 @@ export function titleNode(s) {
 }
 
 /* ---------- Wasserzeichen ---------- */
+/** Wasserzeichen: Logo in einem Rahmen, wahlweise auf farbiger Platte (für transparente Logos). */
 export function wmNode(wm) {
   if (!wm?.path) return null;
+  const im = h('img', { alt: '' });
+  setSrc(im, wm.path);
+  const box = h('div.wm', im);
+  styleWm(box, wm);
+  return box;
+}
+/** Grösse, Deckkraft, Position und Platte direkt am bestehenden Element setzen (schnell, ohne Neuaufbau). */
+export function styleWm(box, wm) {
   const w = { ...WM_DEFAULT, ...wm };
-  const im = h('img.wm.p-' + w.pos, { alt: '', style: { height: w.size + 'cqh', opacity: w.op } });
-  setSrc(im, w.path);
-  return im;
+  box.className = 'wm p-' + w.pos + (w.plate ? ' plate' : '');
+  box.style.opacity = w.op;
+  box.style.background = w.plate ? hexA(w.plateColor, w.plateOp) : 'transparent';
+  const im = box.firstChild; if (im) im.style.height = w.size + 'cqh';
+}
+function hexA(hex, a) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if (!m) return `rgba(255,255,255,${a})`;
+  const n = parseInt(m[1], 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`;
 }

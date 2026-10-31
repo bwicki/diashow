@@ -5,14 +5,16 @@
 import { t } from '../i18n.js';
 import { $, h, clear, append, msg, dialog, mmss, load, save } from '../util.js';
 import * as fsx from '../fsx.js';
-import { thumb, dateOf, fileOf, forget, kindOf } from '../media.js';
+import { thumb, dateOf, fileOf, forget, kindOf, qualityFlags, hamming } from '../media.js';
 import { cur, changed, onChange, addTitle, TRANSITIONS, DEF_WM } from '../show.js';
-import { titleNode, wmNode, tstyle, PRESETS, WM_DEFAULT, BUILTIN } from '../render.js';
+import { titleNode, wmNode, styleWm, tstyle, PRESETS, WM_DEFAULT, BUILTIN } from '../render.js';
 import { pickImage } from './picker.js';
 import { go } from '../app.js';
 
 let root = null; let selId = null; let dragId = null; let anchor = null;
 let cardSize = load('diashow.ed.size', 200);
+let filter = load('diashow.ed.filter', 'all');
+const edQ = new Map();   // Pfad#Seite -> {flags, hash, size}
 const multi = new Set();      // Mehrfachauswahl (enthält immer selId)
 const missing = new Set();
 const DURS = [2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 30, 45, 60];
@@ -35,6 +37,10 @@ function renderBar() {
     h('button.btn', { type: 'button', onclick: shuffle }, t('shuffleOnce')),
     h('button.btn', { type: 'button', onclick: sortByDate }, t('sortDate')),
     h('button.btn', { type: 'button', onclick: () => go('lib') }, t('addImages')),
+    h('label.ctl', t('show'), h('select#edFilter', { onchange: (e) => { filter = e.target.value; save('diashow.ed.filter', filter); applyFilter(); } },
+      [['all', t('fAll')], ['flagged', t('fFlagged')], ['lowres', '▦ ' + t('qL1')], ['blur', '◌ ' + t('qL2')], ['dup', '⧉ ' + t('qL3')], ['img', t('fJpgPng')], ['heic', 'HEIC'], ['raw', 'RAW'], ['pdf', 'PDF'], ['video', t('fVideoOnly')], ['title', t('fTitles')], ['nowm', t('fNoWm')]]
+        .map(([v, l]) => h('option', { value: v, selected: v === filter }, l)))),
+    h('span.note#edCount'),
     h('label.ctl', t('size'), h('input', { type: 'range', min: 90, max: 420, value: cardSize, oninput: (e) => { cardSize = +e.target.value; box()?.style.setProperty('--sw', cardSize + 'px'); }, onchange: () => save('diashow.ed.size', cardSize) })),
   );
   box()?.style.setProperty('--sw', cardSize + 'px');
@@ -43,7 +49,7 @@ const idx = (id) => cur.show.slides.findIndex((s) => s.id === id);
 const box = () => $('slides');
 const selected = () => cur.show.slides.filter((s) => multi.has(s.id));
 function selectOnly(id) { selId = id; anchor = id; multi.clear(); if (id) multi.add(id); }
-function selectAllSlides() { multi.clear(); cur.show.slides.forEach((s) => multi.add(s.id)); markSel(); renderSide(); }
+function selectAllSlides() { multi.clear(); cur.show.slides.filter(visible).forEach((s) => multi.add(s.id)); if (!multi.has(selId)) selId = [...multi][0] || selId; markSel(); renderSide(); }
 function markSel() { box()?.querySelectorAll('.sl').forEach((x) => { x.classList.toggle('on', multi.has(x.dataset.id)); x.classList.toggle('prim', x.dataset.id === selId); }); }
 
 /* ---------- Dia-Raster ---------- */
@@ -57,7 +63,7 @@ function renderSlides() {
   clear(b);
   if (!sl.length) { b.append(h('p.empty', t('noSlides'))); return; }
   sl.forEach((s, i) => b.append(card(s, i)));
-  markSel();
+  markSel(); applyFilter();
 }
 function thContent(s) {
   const n = [];
@@ -74,7 +80,7 @@ function card(s, i) {
       h('span.num', String(i + 1)),
       h('span.trb', trName + (dur ? ' · ' + dur : '')),
       s.kind === 'video' ? h('span.vb', s.sound ? '🔊' : '🔇') : null,
-      s.wm?.path ? h('span.wmb', { title: t('watermark') }, '©') : null,
+      h('div.qflags'),
     ]),
     h('div.inf', h('span.nm', s.type === 'title' ? t('titleSlide') : fsx.baseName(s.path) + (s.page ? ' · ' + t('pageN', { p: s.page }) : '')), h('span.dim', s.type === 'title' ? '' : (fsx.parentOf(s.path).split('/').pop() || ''))),
     s.cap && s.type !== 'title' ? h('div.capl', s.cap) : null,
@@ -100,7 +106,7 @@ function card(s, i) {
     cur.show.slides.splice(to, 0, ...moving); changed(true, 'slides');
   };
   if (s.type === 'file') {
-    thumb(s.path, s.page).then((r) => { el.querySelector('.ph')?.replaceWith(h('img', { src: r.url, alt: '', draggable: false })); if (s.kind === 'video' && r.duration) s._dur = r.duration; missing.delete(s.id); el.classList.remove('missing'); })
+    thumb(s.path, s.page).then((r) => { el.querySelector('.ph')?.replaceWith(h('img', { src: r.url, alt: '', draggable: false })); if (s.kind === 'video' && r.duration) s._dur = r.duration; missing.delete(s.id); el.classList.remove('missing'); noteQ(s, r); })
       .catch(async () => {
         try { await fileOf(s.path); el.querySelector('.ph')?.replaceChildren(h('span', s.kind === 'video' ? t('videoUnplayable') : t('noPreview'))); }
         catch { missing.add(s.id); el.classList.add('missing'); el.querySelector('.ph')?.replaceChildren(h('span', t('fileMissing'))); if (s.id === selId) renderSide(); }
@@ -111,9 +117,70 @@ function card(s, i) {
 /** Nur die Vorschau einer Kachel neu zeichnen (beim Tippen im Titel-Editor). */
 function refreshCard(s) {
   const el = box()?.querySelector(`[data-id="${s.id}"] .thc`); if (!el) return;
-  const img = el.querySelector(':scope > img:not(.wm)');
+  const img = el.querySelector(':scope > img');
   clear(el); append(el, s.type === 'title' ? [titleNode(s)] : [img || h('div.ph')]);
   const w = wmNode(s.wm); if (w) el.append(w);
+}
+
+/* ---------- Qualitätshinweise und Filter ---------- */
+const qkey = (s) => s.path + '#' + (s.page || 0);
+const isPhoto = (s) => s.kind === 'image' || s.kind === 'heic' || s.kind === 'raw';
+function noteQ(s, r) {
+  if (!isPhoto(s)) return;
+  edQ.set(qkey(s), { flags: qualityFlags(r), hash: r.hash, size: r.size, w: r.w, h: r.h, sharp: r.sharp });
+  paintQ(); applyFilter();
+}
+/** Doubletten innerhalb der Diashow (gleiches Bild mehrfach oder sehr ähnliche Bilder). */
+function dupsOf(s) {
+  const q = edQ.get(qkey(s)); if (!q?.hash) return [];
+  const out = [];
+  for (const o of cur.show.slides) {
+    if (o.id === s.id || o.type !== 'file') continue;
+    const p = edQ.get(qkey(o)); if (!p?.hash) continue;
+    if (qkey(o) === qkey(s) || hamming(p.hash, q.hash) <= 4 || (p.size === q.size && hamming(p.hash, q.hash) <= 10)) out.push(o);
+  }
+  return out;
+}
+function flagsOf(s) {
+  const q = edQ.get(qkey(s)); if (!q) return {};
+  const d = dupsOf(s);
+  return { ...q.flags, dup: d.length ? d : null, q };
+}
+let paintT = null;
+function paintQ() {
+  clearTimeout(paintT);
+  paintT = setTimeout(() => {
+    box()?.querySelectorAll('.sl').forEach((el) => {
+      const s = cur.show.slides[idx(el.dataset.id)]; const qf = el.querySelector('.qflags'); if (!s || !qf) return;
+      const f = flagsOf(s); const out = [];
+      if (f.lowres) out.push(h('span.qf.lowres.' + f.lowres, { title: t('qLowres', { w: f.q.w, h: f.q.h }) }, '▦'));
+      if (f.blur) out.push(h('span.qf.blur', { title: t('qBlur', { v: f.q.sharp }) }, '◌'));
+      if (f.dup) out.push(h('span.qf.dup', { title: t('qDupShow', { n: f.dup.map((o) => idx(o.id) + 1).join(', ') }) }, '⧉'));
+      qf.replaceChildren(...out);
+    });
+  }, 120);
+}
+function visible(s) {
+  switch (filter) {
+    case 'all': return true;
+    case 'flagged': { const f = flagsOf(s); return !!(f.lowres || f.blur || f.dup); }
+    case 'lowres': return !!flagsOf(s).lowres;
+    case 'blur': return !!flagsOf(s).blur;
+    case 'dup': return !!flagsOf(s).dup;
+    case 'img': return s.kind === 'image';
+    case 'title': return s.type === 'title';
+    case 'nowm': return s.type === 'file' && !s.wm?.path;
+    default: return s.kind === filter;
+  }
+}
+let filtT = null;
+function applyFilter() {
+  clearTimeout(filtT);
+  filtT = setTimeout(() => {
+    let n = 0;
+    box()?.querySelectorAll('.sl').forEach((el) => { const s = cur.show.slides[idx(el.dataset.id)]; const v = s ? visible(s) : true; el.hidden = !v; if (v) n++; });
+    const c = $('edCount'); if (c) c.textContent = filter === 'all' ? '' : t('filterCount', { n, k: cur.show.slides.length });
+  }, 150);
 }
 
 /* ---------- Seitenleiste ---------- */
@@ -233,23 +300,54 @@ function renderWatermark(side, list, redraw) {
   const first = list.find((x) => x.wm?.path)?.wm;
   const w = { ...WM_DEFAULT, ...(first || {}) };
   const n = list.filter((x) => x.wm?.path).length;
-  const apply = (patch) => { for (const s of list) { s.wm = { ...WM_DEFAULT, ...(s.wm || {}), ...patch }; if (!s.wm.path) delete s.wm; } changed(true, 'meta'); for (const s of list) refreshCard(s); redraw?.(); };
+  /* Pfad/Position: Kacheln neu zeichnen. Grösse, Deckkraft, Platte: nur Stil der bestehenden Elemente setzen
+     (schnell, auch bei 250 markierten Dias). */
+  const apply = (patch, light) => {
+    for (const s of list) { s.wm = { ...WM_DEFAULT, ...(s.wm || {}), ...patch }; if (!s.wm.path) delete s.wm; }
+    changed(true, 'meta');
+    if (light) { for (const s of list) { const el = box()?.querySelector(`[data-id="${s.id}"] .thc > .wm`); if (el && s.wm) styleWm(el, s.wm); } const pv = $('edSide')?.querySelector('.pv > .wm'); const p0 = list.find((x) => x.id === selId) || list[0]; if (pv && p0?.wm) styleWm(pv, p0.wm); }
+    else { for (const s of list) refreshCard(s); redraw?.(); }
+  };
+  const plateRows = h('div');
+  const drawPlate = () => {
+    clear(plateRows);
+    if (!first) return;
+    const cw = { ...WM_DEFAULT, ...(list.find((x) => x.wm?.path)?.wm || {}) };
+    if (cw.plate) append(plateRows, [
+      row(t('plateColor'), color(cw.plateColor, (v) => apply({ plateColor: v }, true))),
+      row(t('plateOp'), range(0.1, 1, 0.05, cw.plateOp, (v) => apply({ plateOp: v }, true), (v) => Math.round(v * 100) + ' %')),
+    ]);
+  };
+  drawPlate();
   append(side, [
     h('div.section-title.mt', t('watermark') + (list.length > 1 ? ` · ${t('wmOnN', { n, k: list.length })}` : '')),
     row(t('logo'), h('span.inline', h('span.small', first ? logoLabel(first.path) : t('none')),
-      h('button.btn.mini', { type: 'button', onclick: async () => { const p = await pickImage(t('watermark'), first?.path); if (p) { apply({ path: p }); renderSide(); } } }, t('choose')),
+      h('button.btn.mini', { type: 'button', onclick: async () => { const p = await pickImage(t('watermark'), first?.path); if (p) { apply({ path: p }); renderSide(); } } }, first ? t('replace') : t('choose')),
       first ? h('button.btn.mini', { type: 'button', title: t('wmRemove'), onclick: () => { for (const s of list) delete s.wm; changed(true, 'meta'); list.forEach(refreshCard); renderSide(); } }, '✕') : null)),
-    first ? row(t('position'), sel([['tl', t('pos_tl')], ['tc', t('pos_tc')], ['tr', t('pos_tr')], ['c', t('pos_c')], ['bl', t('pos_bl')], ['bc', t('pos_bc')], ['br', t('pos_br')]], w.pos, (v) => apply({ pos: v }))) : null,
-    first ? row(t('logoSize'), range(4, 40, 1, w.size, (v) => apply({ size: v }))) : null,
-    first ? row(t('opacity'), range(0.1, 1, 0.05, w.op, (v) => apply({ op: v }), (v) => Math.round(v * 100) + ' %')) : null,
+    first ? row(t('position'), sel([['tl', t('pos_tl')], ['tc', t('pos_tc')], ['tr', t('pos_tr')], ['c', t('pos_c')], ['bl', t('pos_bl')], ['bc', t('pos_bc')], ['br', t('pos_br')]], w.pos, (v) => apply({ pos: v }, true))) : null,
+    first ? row(t('logoSize'), range(2, 40, 0.5, w.size, (v) => apply({ size: v }, true), (v) => v + ' %')) : null,
+    first ? row(t('opacity'), range(0.1, 1, 0.05, w.op, (v) => apply({ op: v }, true), (v) => Math.round(v * 100) + ' %')) : null,
+    first ? h('label.srow.check', h('span', t('plate')), h('input', { type: 'checkbox', checked: w.plate, onchange: (e) => { apply({ plate: e.target.checked }, true); drawPlate(); } })) : null,
+    plateRows,
+    first ? h('div.row-actions.mt', h('button.btn', { type: 'button', onclick: () => applyWmAll(list.find((x) => x.wm?.path).wm) }, t('wmAll'))) : null,
     h('p.note', t('wmHint')),
   ]);
+}
+/** Dieses Wasserzeichen auf alle Bild-Dias übernehmen und als Standard für neue Dias merken. */
+async function applyWmAll(wm) {
+  const files = cur.show.slides.filter((x) => x.type === 'file');
+  const r = await dialog(t('wmAll'), h('p', t('wmAllQ', { n: files.length, l: logoLabel(wm.path) })), [{ label: t('cancel'), value: null }, { label: t('wmAllDo'), value: 'ok', primary: true }]);
+  if (r !== 'ok') return;
+  for (const s of files) s.wm = { ...wm };
+  cur.show.settings.wmDefault = { ...wm }; cur.show.settings.defWm = true;
+  changed(true, 'slides'); msg(t('wmAllDone', { n: files.length }));
 }
 
 /* ---------- Mehrfachauswahl ---------- */
 function renderMulti(side, list) {
   append(side, [
     h('div.section-title', t('multiSel', { n: list.length })),
+    preview(list.find((x) => x.id === selId) || list[0]),
     h('p.note', t('multiHint')),
     field(t('duration'), sel([['', t('noChange')], ['std', t('standard')], ...DURS.map((d) => [String(d), d + ' s'])], '', (v) => { if (!v) return; for (const s of list) s.dur = v === 'std' ? null : +v; changed(true, 'slides'); })),
     field(t('transition'), sel([['', t('noChange')], ['rnd', t('random')], ...TRANSITIONS.map((x) => [x, t('tr_' + x)])], '', (v) => { if (!v) return; for (const s of list) s.tr = v === 'rnd' ? '' : v; changed(true, 'slides'); })),
@@ -272,8 +370,7 @@ function renderWhole(side) {
     chk(t('loop'), S.loop, (v) => { S.loop = v; }),
     chk(t('kenburns'), S.kenburns, (v) => { S.kenburns = v; }),
     chk(t('captions'), S.captions, (v) => { S.captions = v; }),
-    chk(t('defWm'), S.defWm, (v) => { S.defWm = v; }),
-    h('button.btn.mini', { type: 'button', onclick: applyDefWmAll }, t('defWmAll')),
+    chk(t('defWm', { l: logoLabel((S.wmDefault || DEF_WM).path) }), S.defWm, (v) => { S.defWm = v; }),
     h('div.lbl.mt', t('pool')),
     h('div.chips', TRANSITIONS.map((x) => h('button.chip' + (S.pool.includes(x) ? '.on' : ''), { type: 'button', onclick: () => { S.pool = S.pool.includes(x) ? S.pool.filter((y) => y !== x) : [...S.pool, x]; if (!S.pool.length) S.pool = ['fade']; changed(true, 'meta'); renderSide(); } }, t('tr_' + x)))),
     h('p.note', t('poolHint')),
@@ -309,12 +406,6 @@ async function newTitleDlg() {
   selectOnly(s.id); changed(true, 'slides');
   setTimeout(() => box()?.querySelector(`[data-id="${s.id}"]`)?.scrollIntoView({ block: 'center' }), 50);
 }
-function applyDefWmAll() {
-  let k = 0;
-  for (const s of cur.show.slides) if (s.type === 'file') { s.wm = { ...DEF_WM }; k++; }
-  changed(true, 'slides'); msg(t('defWmApplied', { n: k }));
-}
-
 /* ---------- Aktionen ---------- */
 function moveSel(d) {
   const i = idx(selId); const j = i + d; const sl = cur.show.slides;

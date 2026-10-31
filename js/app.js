@@ -4,6 +4,7 @@ import { t, lang, setLang } from './i18n.js';
 import { $, h, clear, append, load, save, msg, copyAllMsgs, dialog, idbClear, fmtDateTime, esc } from './util.js';
 import * as fsx from './fsx.js';
 import { cur, onChange, changed, newShow, setShow, toJSON } from './show.js';
+import { QUALITY, BEAMERS, setBeamer } from './media.js';
 import { renderLibrary } from './ui/library.js';
 import { renderEditor } from './ui/editor.js';
 import { renderPresent, isRunning } from './ui/present.js';
@@ -43,6 +44,7 @@ function renderMenu() {
     h('div.sep'),
     item(lang() === 'de' ? 'English' : 'Deutsch', () => { setLang(lang() === 'de' ? 'en' : 'de'); renderAll(); }),
     item(t('theme'), () => { const th = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = th; save('diashow.theme', th); }),
+    item(t('beamerMenu') + ' (' + QUALITY.res.replace('x', '×') + ')', beamerDlg),
     item(t('clearCache'), async () => { await idbClear('thumbs'); await idbClear('conv'); msg(t('cacheCleared')); }),
     h('div.sep'),
     item(t('about'), about),
@@ -157,6 +159,12 @@ export async function saveShow(as) {
   } catch (e) { msg(t('saveFail') + ' ' + (e?.message || e), 'err'); return false; }
 }
 
+async function beamerDlg() {
+  let v = QUALITY.res;
+  const r = await dialog(t('beamerTitle'), [h('p', t('beamerText')), h('select', { onchange: (e) => { v = e.target.value; } }, BEAMERS.map((b) => h('option', { value: b, selected: b === v }, b.replace('x', ' × '))))], [{ label: t('cancel'), value: null }, { label: 'OK', value: 'ok', primary: true }]);
+  if (r !== 'ok') return;
+  setBeamer(v); save('diashow.beamer', v); renderAll();
+}
 function about() {
   dialog(t('about'), h('div.about', [
     h('p', h('b', `${APP.name} ${APP.version}`), ` · ${APP.date}`),

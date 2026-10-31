@@ -150,6 +150,13 @@ function analyse(src) {
 
 /* ---------- Qualitätshinweise ---------- */
 export const QUALITY = { minLong: 1600, minShort: 900, badLong: 1000, blur: 60 };
+export const BEAMERS = ['1280x720', '1280x800', '1920x1080', '1920x1200', '3840x2160'];
+/** Grenzwerte aus der Beamer-Auflösung: knapp unter 85 % der Beamer-Pixel, zu klein unter 50 % der Breite. */
+export function setBeamer(res) {
+  const [W, H] = String(res || '1920x1080').split('x').map(Number);
+  QUALITY.res = `${W}x${H}`; QUALITY.minLong = Math.round(W * 0.85); QUALITY.minShort = Math.round(H * 0.85); QUALITY.badLong = Math.round(W * 0.5);
+}
+try { setBeamer(JSON.parse(localStorage.getItem('diashow.beamer')) || '1920x1080'); } catch { setBeamer('1920x1080'); }
 /** Hinweise aus einem Vorschau-Datensatz: lowres ('warn'|'bad'), blur (true). */
 export function qualityFlags(rec) {
   const f = {};
