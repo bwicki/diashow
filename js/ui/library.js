@@ -73,13 +73,43 @@ function renderBar() {
   );
 }
 
+/* ---------- Am Ende eines Ordners: weiter im nächsten Ordner des Baums ---------- */
+async function folderOrder() {
+  const out = [];
+  async function rec(p) { out.push(p); let d = []; try { d = (await fsx.listDir(p)).dirs; } catch { /* gesperrt */ } for (const x of d) { const c = p ? p + '/' + x : x; if (c !== fsx.SHOWDIR) await rec(c); } }
+  await rec('');
+  return out;
+}
+async function nextFolder() {
+  const order = await folderOrder();
+  const inside = (p) => st.sub && st.path !== '' && p.startsWith(st.path + '/');
+  let i = order.indexOf(st.path);
+  for (let k = i + 1; k < order.length; k++) {
+    const p = order[k];
+    if (inside(p)) continue;
+    const prev = st.path;
+    st.path = p;
+    await loadGrid(true);
+    if (st.list.length) {
+      // Baum bis zum neuen Ordner aufklappen
+      let a = ''; for (const part of p.split('/')) { st.open.add(a); a = a ? a + '/' + part : part; }
+      st.open.add(p); persist(); renderTree(); renderBar();
+      closeLb(); openLb(0); flash(t('lbNextFolder', { f: p.split('/').join(' › ') }));
+      return true;
+    }
+    st.path = prev;
+  }
+  await loadGrid(true);
+  return false;
+}
+
 /* ---------- Raster ---------- */
-async function loadGrid() {
+async function loadGrid(quiet) {
   const my = ++token;
-  clear(gridEl).append(h('div.loading', t('loading')));
+  if (!quiet) clear(gridEl).append(h('div.loading', t('loading')));
   let files;
   try {
-    files = (st.sub && st.path !== '') ? await fsx.walk(st.path, (d, f) => { if (my === token) gridEl.firstChild.textContent = t('loadingN', { d, f }); }, (p) => p === fsx.SHOWDIR && st.path !== fsx.SHOWDIR) : (await fsx.listDir(st.path)).files;
+    files = (st.sub && st.path !== '') ? await fsx.walk(st.path, (d, f) => { if (my === token && !quiet) gridEl.firstChild.textContent = t('loadingN', { d, f }); }, (p) => p === fsx.SHOWDIR && st.path !== fsx.SHOWDIR) : (await fsx.listDir(st.path)).files;
   } catch (e) { if (my === token) clear(gridEl).append(h('p.err', t('listFail') + ' ' + (e?.message || e))); return; }
   if (my !== token) return;
   let list = files.map((f) => ({ path: f.path, name: f.name, kind: kindOf(f.name) }));
@@ -90,7 +120,7 @@ async function loadGrid() {
   if (st.filter === 'video') list = list.filter((f) => f.kind === 'video');
   if (st.sort === 'date') {
     let n = 0;
-    await Promise.all(list.map(async (f) => { try { f.date = await dateOf(f.path); } catch { f.date = new Date(0); } n++; if (my === token && n % 10 === 0) gridEl.firstChild.textContent = t('readingDates', { n, k: list.length }); }));
+    await Promise.all(list.map(async (f) => { try { f.date = await dateOf(f.path); } catch { f.date = new Date(0); } n++; if (my === token && !quiet && n % 10 === 0) gridEl.firstChild.textContent = t('readingDates', { n, k: list.length }); }));
     if (my !== token) return;
     list.sort((a, b) => a.date - b.date);
   }
@@ -225,7 +255,7 @@ async function selectNext() {
   const last = lb.i === st.list.length - 1;
   let lastPage = true;
   if (f.kind === 'pdf') { try { lastPage = (lb.page || 1) >= await pdfPages(f.path); } catch { /* egal */ } }
-  if (last && lastPage) { renderLb(true); flash(t('lbLast')); return; }
+  if (last && lastPage) { renderLb(true); if (!(await nextFolder())) flash(t('lbLast')); return; }
   skip(1);
 }
 function flash(text) { const n = lb?.el.querySelector('.lb-flash'); if (!n) return; n.textContent = text; n.classList.add('on'); clearTimeout(n._t); n._t = setTimeout(() => n.classList.remove('on'), 2500); }

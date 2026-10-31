@@ -1,5 +1,10 @@
 # Changelog — Diashow
 
+## 1.0.3 — 2026-10-31
+
+- Grossansicht: «Auswählen & weiter» springt am Ende eines Ordners automatisch in den nächsten Ordner
+  des Baums mit Bildern (Baum klappt mit auf, Hinweis zeigt den neuen Ordner).
+
 ## 1.0.2 — 2026-10-31
 
 - Grossansicht im Tag-Look mit Knopf **«✓ Auswählen & weiter»** (Taste Enter): wählt das Bild aus und öffnet

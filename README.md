@@ -41,7 +41,8 @@ werden nie verändert. Nach jedem Neustart von Chrome genügt ein Klick auf **Zu
 - **Sortierung** nach Ordner oder Aufnahmedatum (EXIF, sonst Datum im Dateinamen, sonst
   Änderungsdatum), **Filter** Bilder/PDF/Video, **Unterordner** einbeziehen, **Grösse** der Kacheln.
 - Klick auf ein Bild öffnet die **Grossansicht**. Der Knopf **«✓ Auswählen & weiter»** (Taste Enter)
-  nimmt das Bild auf und öffnet sofort das nächste – so geht man einen Ordner zügig durch.
+  nimmt das Bild auf und öffnet sofort das nächste – so geht man einen Ordner zügig durch. Am Ende
+  eines Ordners geht es automatisch im nächsten Ordner des Baums weiter.
   «Überspringen ›» (→), «‹ Zurück» (←), «Abwählen» (Leertaste), Esc schliesst.
 - **PDF:** in der Grossansicht geht «Auswählen & weiter» Seite für Seite; die Seitenleiste zeigt alle
   Seiten mit Klickbox.
