@@ -1,5 +1,10 @@
 # Changelog — Diashow
 
+## 1.0.1 — 2026-10-31
+
+- Tag-Look als Standard wie ops (`data-theme="light"`); Nacht-Look weiterhin über Menü ≡ → «Hell / dunkel».
+  Die Beamer-Bühne bleibt schwarz.
+
 ## 1.0.0 — 2026-10-31
 
 Erste Version für die Vorträge ab 05.11.2026.
