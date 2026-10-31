@@ -72,7 +72,7 @@ textarea{width:100%;resize:vertical;line-height:1.45;}
 .node .selc{background:var(--amber);color:#1a1200;border-radius:8px;font-size:10px;padding:0 6px;font-family:var(--mono);}
 .libmain{display:flex;flex-direction:column;min-height:0;min-width:0;}
 .crumbs{font-weight:600;color:var(--text-strong);font-size:14px;}
-.grid{flex:1;overflow:auto;padding:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--tw,240px),1fr));gap:12px;align-content:start;}
+.grid{flex:1;min-height:0;overflow:auto;padding:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--tw,240px),1fr));grid-auto-rows:max-content;gap:12px;align-content:start;}
 .ghead{grid-column:1/-1;display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);border-bottom:1px solid var(--line);padding:8px 0 4px;}
 .ghead:first-child{padding-top:0;}
 .gfoot{grid-column:1/-1;}
@@ -118,13 +118,13 @@ textarea{width:100%;resize:vertical;line-height:1.45;}
 /* ---------- 2 Editor ---------- */
 .ed{display:grid;grid-template-columns:minmax(0,1fr) 340px;height:100%;}
 .edmain{display:flex;flex-direction:column;min-height:0;}
-.slides{flex:1;overflow:auto;padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;align-content:start;}
-.sl{background:var(--panel);border:2px solid var(--line-soft);border-radius:var(--r);overflow:hidden;cursor:grab;user-select:none;}
+.slides{flex:1;min-height:0;overflow:auto;padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));grid-auto-rows:max-content;gap:14px;align-content:start;}
+.sl{flex-shrink:0;background:var(--panel);border:2px solid var(--line-soft);border-radius:var(--r);overflow:hidden;cursor:grab;user-select:none;}
 .sl.on{border-color:var(--amber);}
 .sl.drag{opacity:.35;}
 .sl.over{box-shadow:inset 4px 0 0 var(--dew);} .sl.over.after{box-shadow:inset -4px 0 0 var(--dew);}
 .sl.missing{border-color:var(--temp);}
-.sl .th{position:relative;aspect-ratio:16/9;background:#111;}
+.sl .th{position:relative;height:0;padding-top:56.25%;background:#111;}
 .sl .thc{position:absolute;inset:0;container-type:size;overflow:hidden;}
 .sl .thc > img:not(.wm){width:100%;height:100%;object-fit:cover;display:block;}
 .sl.prim{box-shadow:0 0 0 2px var(--amber);}

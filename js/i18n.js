@@ -6,7 +6,7 @@ const KEYS_HELP_EN = 'Clicker/keyboard: <kbd>→</kbd> <kbd>PgDn</kbd> next · <
 
 const DE = {
   // Titelfolien-Editor, Wasserzeichen, Mehrfachauswahl, Logo-Auswahl (1.1)
-  selectAllSlides: 'Alle markieren', watermark: 'Wasserzeichen', none: '– keines –', colors: 'Farben', color: 'Farbe', bgImage: 'Hintergrundbild', choose: 'Wählen …', darken: 'Abdunkeln',
+  selectAllSlides: 'Alle markieren', defWm: 'Neue Dias: Wicki-Logo oben rechts', watermark: 'Wasserzeichen', none: '– keines –', colors: 'Farben', color: 'Farbe', bgImage: 'Hintergrundbild', choose: 'Wählen …', darken: 'Abdunkeln',
   titleEditor: 'Titelfolie gestalten', subtitle: 'Untertitel', subtitlePh: 'z. B. Finnland · 29.–31.08.2026', presets: 'Vorlagen',
   preset_night: 'Nacht', preset_day: 'Tag', preset_amber: 'Amber', preset_green: 'Grün', preset_black: 'Schwarz', preset_white: 'Weiss',
   background: 'Hintergrund', bgType: 'Art', bgGradient: 'Verlauf', bgSolid: 'Farbe', bgImageShort: 'Bild',
@@ -78,7 +78,7 @@ const DE = {
 };
 
 const EN = {
-  selectAllSlides: 'Select all', watermark: 'Watermark', none: '– none –', colors: 'Colours', color: 'Colour', bgImage: 'Background picture', choose: 'Choose …', darken: 'Darken',
+  selectAllSlides: 'Select all', defWm: 'New slides: Wicki logo top right', watermark: 'Watermark', none: '– none –', colors: 'Colours', color: 'Colour', bgImage: 'Background picture', choose: 'Choose …', darken: 'Darken',
   titleEditor: 'Design title slide', subtitle: 'Subtitle', subtitlePh: 'e.g. Finland · 29–31 Aug 2026', presets: 'Presets',
   preset_night: 'Night', preset_day: 'Day', preset_amber: 'Amber', preset_green: 'Green', preset_black: 'Black', preset_white: 'White',
   background: 'Background', bgType: 'Type', bgGradient: 'Gradient', bgSolid: 'Colour', bgImageShort: 'Picture',

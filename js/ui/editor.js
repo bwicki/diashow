@@ -269,6 +269,7 @@ function renderWhole(side) {
     chk(t('loop'), S.loop, (v) => { S.loop = v; }),
     chk(t('kenburns'), S.kenburns, (v) => { S.kenburns = v; }),
     chk(t('captions'), S.captions, (v) => { S.captions = v; }),
+    chk(t('defWm'), S.defWm, (v) => { S.defWm = v; }),
     h('div.lbl.mt', t('pool')),
     h('div.chips', TRANSITIONS.map((x) => h('button.chip' + (S.pool.includes(x) ? '.on' : ''), { type: 'button', onclick: () => { S.pool = S.pool.includes(x) ? S.pool.filter((y) => y !== x) : [...S.pool, x]; if (!S.pool.length) S.pool = ['fade']; changed(true, 'meta'); renderSide(); } }, t('tr_' + x)))),
     h('p.note', t('poolHint')),

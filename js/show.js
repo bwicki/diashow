@@ -5,11 +5,15 @@
  */
 import { uid, load, save } from './util.js';
 import { kindOf } from './media.js';
+import { PRESETS } from './render.js';
+
+/** Standard-Wasserzeichen für neu hinzugefügte Dias (Wunsch 31.10.2026): Wicki-Logo oben rechts. */
+export const DEF_WM = { path: 'app:img/wicki-logo.png', pos: 'tr', size: 10, op: 0.85 };
 
 export const TRANSITIONS = ['fade', 'slide', 'zoom', 'wipe', 'cube', 'black', 'circle'];
 
 export function defaultSettings() {
-  return { mode: 'auto', dur: 6, trDur: 1.0, order: 'fixed', loop: true, kenburns: true, captions: true, pool: [...TRANSITIONS], fit: 'contain' };
+  return { mode: 'auto', dur: 6, trDur: 1.0, order: 'fixed', loop: true, kenburns: true, captions: true, pool: [...TRANSITIONS], fit: 'contain', defWm: true };
 }
 export function newShow(name = '') {
   return { app: 'diashow', format: 1, name, created: new Date().toISOString(), modified: null, settings: defaultSettings(), slides: [] };
@@ -34,7 +38,9 @@ export function hasSlide(path, page) { return cur.show.slides.some((s) => s.type
 export function countPages(path) { return cur.show.slides.filter((s) => s.type === 'file' && s.path === path && s.page).length; }
 export function addSlide(path, page) {
   if (hasSlide(path, page)) return;
-  cur.show.slides.push({ id: uid(), type: 'file', path, page: page || undefined, kind: kindOf(path), cap: '', note: '', dur: null, tr: '', sound: false });
+  const s = { id: uid(), type: 'file', path, page: page || undefined, kind: kindOf(path), cap: '', note: '', dur: null, tr: '', sound: false };
+  if (cur.show.settings.defWm) s.wm = { ...DEF_WM };
+  cur.show.slides.push(s);
 }
 export function removeSlide(path, page) {
   cur.show.slides = cur.show.slides.filter((s) => !(s.type === 'file' && s.path === path && (s.page || 0) === (page || 0)));
@@ -44,7 +50,7 @@ export function toggleSlide(path, page) {
   changed(true, 'slides');
 }
 export function addTitle(at, text) {
-  const s = { id: uid(), type: 'title', cap: text, note: '', dur: null, tr: '' };
+  const s = { id: uid(), type: 'title', cap: text, note: '', dur: null, tr: '', ts: { ...PRESETS.black } };
   cur.show.slides.splice(at == null ? cur.show.slides.length : at, 0, s);
   changed(true, 'slides');
   return s;

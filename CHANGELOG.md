@@ -1,5 +1,14 @@
 # Changelog — Diashow
 
+## 1.1.1 — 2026-10-31
+
+- **Fehler behoben:** Bei grossen Diashows (z. B. 250 Dias) schrumpften die Kacheln in «Diashow bearbeiten»
+  auf Strichhöhe und liessen sich nicht mehr bearbeiten (Rasterzeilen wurden auf die Fensterhöhe gestaucht).
+  Gleiche Absicherung im Bilderraster.
+- Neue Titelfolien starten mit der Vorlage «Schwarz».
+- Neue Dias erhalten standardmässig das Wicki-Partners-Logo oben rechts als Wasserzeichen
+  (abschaltbar unter «Ganze Diashow»).
+
 ## 1.1.0 — 2026-10-31
 
 - **Titelfolien-Editor:** Titel und Untertitel, Vorlagen (Nacht, Tag, Amber, Grün, Schwarz, Weiss),
