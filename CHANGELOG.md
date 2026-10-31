@@ -1,5 +1,11 @@
 # Changelog — Diashow
 
+## 1.0.2 — 2026-10-31
+
+- Grossansicht im Tag-Look mit Knopf **«✓ Auswählen & weiter»** (Taste Enter): wählt das Bild aus und öffnet
+  sofort das nächste; bei PDFs Seite für Seite. Dazu «Überspringen ›» (→), «‹ Zurück» (←), «Abwählen»
+  (Leertaste) und Zähler «12 / 87». Das nächste Bild wird im Voraus vorbereitet (HEIC, PDF).
+
 ## 1.0.1 — 2026-10-31
 
 - Tag-Look als Standard wie ops (`data-theme="light"`); Nacht-Look weiterhin über Menü ≡ → «Hell / dunkel».

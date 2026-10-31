@@ -198,35 +198,75 @@ function lbKey(e) {
   if (!lb) return;
   if (e.target.tagName === 'INPUT' && e.target.type === 'text') return;
   if (e.key === 'Escape') { e.preventDefault(); closeLb(); }
-  else if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
-  else if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
-  else if (e.key === ' ') { e.preventDefault(); const f = st.list[lb.i]; if (f.kind === 'pdf') toggleSlide(f.path, lb.page || 1); else if (!st.bad.has(f.path)) toggleSlide(f.path); renderLb(true); }
+  else if (e.key === 'Enter') { e.preventDefault(); selectNext(); }
+  else if (e.key === 'ArrowRight') { e.preventDefault(); skip(1); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); skip(-1); }
+  else if (e.key === ' ') { e.preventDefault(); toggleCur(); }
 }
+const curPage = (f) => (f.kind === 'pdf' ? (lb.page || 1) : undefined);
+function curSelected() { const f = st.list[lb.i]; return hasSlide(f.path, curPage(f)); }
+function toggleCur() { const f = st.list[lb.i]; if (st.bad.has(f.path)) return; toggleSlide(f.path, curPage(f)); renderLb(true); }
 function step(d) { if (!lb) return; lb.i = (lb.i + d + st.list.length) % st.list.length; lb.page = 1; renderLb(); }
+/** Weiter ohne Auswahl; bei PDF zuerst seitenweise. */
+async function skip(d) {
+  const f = st.list[lb.i];
+  if (f.kind === 'pdf') {
+    let n = 1; try { n = await pdfPages(f.path); } catch { /* egal */ }
+    const p = (lb.page || 1) + d;
+    if (p >= 1 && p <= n) { lb.page = p; renderLb(); return; }
+  }
+  step(d);
+}
+/** Auswählen (falls noch nicht) und gleich das nächste Bild bzw. die nächste PDF-Seite öffnen. */
+async function selectNext() {
+  if (!lb) return;
+  const f = st.list[lb.i];
+  if (!st.bad.has(f.path) && !hasSlide(f.path, curPage(f))) toggleSlide(f.path, curPage(f));
+  const last = lb.i === st.list.length - 1;
+  let lastPage = true;
+  if (f.kind === 'pdf') { try { lastPage = (lb.page || 1) >= await pdfPages(f.path); } catch { /* egal */ } }
+  if (last && lastPage) { renderLb(true); flash(t('lbLast')); return; }
+  skip(1);
+}
+function flash(text) { const n = lb?.el.querySelector('.lb-flash'); if (!n) return; n.textContent = text; n.classList.add('on'); clearTimeout(n._t); n._t = setTimeout(() => n.classList.remove('on'), 2500); }
+function actions(f) {
+  const bad = st.bad.has(f.path); const sel = !bad && hasSlide(f.path, curPage(f));
+  return h('div.lb-act', [
+    h('button.btn', { type: 'button', onclick: () => skip(-1), title: '←' }, '‹ ' + t('lbBack')),
+    sel ? h('span.lb-state', '✓ ' + t('lbIsSel')) : null,
+    sel ? h('button.btn', { type: 'button', onclick: toggleCur, title: t('lbSpace') }, t('lbDeselect')) : null,
+    h('button.btn.primary.big', { type: 'button', disabled: bad, onclick: selectNext, title: 'Enter' }, sel ? t('lbNext') : '✓ ' + t('lbSelectNext')),
+    h('button.btn', { type: 'button', onclick: () => skip(1), title: '→' }, t('lbSkip') + ' ›'),
+    h('span.lb-flash'),
+  ]);
+}
 async function renderLb(onlyHead) {
   const f = st.list[lb.i]; const my = lb;
-  const isSel = f.kind === 'pdf' ? hasSlide(f.path, lb.page || 1) : hasSlide(f.path);
   const head = h('div.lb-top', [
-    h('b', f.name), h('span.dim', fsx.parentOf(f.path) || fsx.rootName()), h('span.dim.lbdate'),
+    h('b', f.name + (f.kind === 'pdf' ? ' · ' + t('pageN', { p: lb.page || 1 }) : '')), h('span.dim', fsx.parentOf(f.path) || fsx.rootName()), h('span.dim.lbdate'),
     h('span.sp'),
-    f.kind === 'pdf' ? null : h('label.ctl.big', h('input', { type: 'checkbox', checked: isSel, disabled: st.bad.has(f.path), onchange: () => toggleSlide(f.path) }), t('inShow')),
+    h('span.dim.mono', `${lb.i + 1} / ${st.list.length}`),
     h('button.btn', { type: 'button', onclick: closeLb }, t('closeEsc')),
   ]);
-  if (onlyHead && lb.el.firstChild) { lb.el.firstChild.replaceWith(head); fillDate(f, head); renderPdfStrip(f); return; }
+  if (onlyHead && lb.el.firstChild) {
+    lb.el.firstChild.replaceWith(head); fillDate(f, head);
+    lb.el.querySelector('.lb-act')?.replaceWith(actions(f));
+    renderPdfStrip(f); return;
+  }
   if (lb.url) { URL.revokeObjectURL(lb.url); lb.url = null; }
   const stage = h('div.lb-stage', [h('div.loading', t('loading'))]);
-  const bot = h('div.lb-bot', h('span.note', t('lbHint')));
-  clear(lb.el).append(head, stage, bot, h('button.lb-nav.l', { type: 'button', onclick: () => step(-1) }, '‹'), h('button.lb-nav.r', { type: 'button', onclick: () => step(1) }, '›'));
+  const bot = h('div.lb-bot', [actions(f), h('div.lb-sub', h('span.note', t('lbHint')))]);
+  clear(lb.el).append(head, stage, bot, h('button.lb-nav.l', { type: 'button', onclick: () => skip(-1) }, '‹'), h('button.lb-nav.r', { type: 'button', onclick: () => skip(1) }, '›'));
   fillDate(f, head);
   try {
     let node;
     if (f.kind === 'video') {
       const file = await fileOf(f.path); lb.url = URL.createObjectURL(file);
       node = h('video', { src: lb.url, controls: true, autoplay: true, playsInline: true });
-      node.onerror = () => { st.bad.add(f.path); stage.replaceChildren(h('p.err', t('videoUnplayableTip'))); };
+      node.onerror = () => { st.bad.add(f.path); stage.replaceChildren(h('p.err', t('videoUnplayableTip'))); renderLb(true); };
     } else {
       if (f.kind === 'pdf') { lb.page = lb.page || 1; renderPdfStrip(f); }
-      const blob = await imageBlob(f.path, f.kind === 'pdf' ? lb.page : undefined, f.kind);
+      const blob = await imageBlob(f.path, curPage(f), f.kind);
       if (my !== lb) return;
       lb.url = URL.createObjectURL(blob);
       node = h('img', { src: lb.url, alt: f.name });
@@ -234,6 +274,12 @@ async function renderLb(onlyHead) {
     if (my !== lb) return;
     stage.replaceChildren(node);
   } catch (e) { if (my === lb) stage.replaceChildren(h('p.err', t('noPreview') + ': ' + (e?.message || e))); }
+  prefetch(lb.i + 1);
+}
+/** Nächstes Bild schon vorbereiten (HEIC-Umwandlung, PDF-Seite), damit «Auswählen & weiter» ohne Warten geht. */
+function prefetch(i) {
+  const f = st.list[i % st.list.length]; if (!f || f.kind === 'video') return;
+  imageBlob(f.path, f.kind === 'pdf' ? 1 : undefined, f.kind).catch(() => {});
 }
 async function fillDate(f, head) { try { const d = await dateOf(f.path); const s = head.querySelector('.lbdate'); if (s) s.textContent = d.toLocaleString('de-CH', { dateStyle: 'medium', timeStyle: 'short' }); } catch { /* egal */ } }
 async function renderPdfStrip(f) {
@@ -241,7 +287,7 @@ async function renderPdfStrip(f) {
   const bot = lb.el.querySelector('.lb-bot');
   let n = 1; try { n = await pdfPages(f.path); } catch (e) { bot.replaceChildren(h('p.err', String(e?.message || e))); return; }
   const strip = h('div.pages');
-  bot.replaceChildren(h('div.note', t('pdfHint')), strip);
+  bot.querySelector('.lb-sub')?.replaceChildren(h('div.note', t('pdfHint')), strip);
   for (let p = 1; p <= n; p++) {
     const pg = h('div.pg' + (hasSlide(f.path, p) ? '.sel' : '') + (p === lb.page ? '.cur' : ''), { title: t('pageN', { p }) },
       h('button.cb', { type: 'button', onclick: (e) => { e.stopPropagation(); toggleSlide(f.path, p); renderLb(true); } }), h('span.pn', String(p)));

@@ -40,8 +40,11 @@ werden nie verändert. Nach jedem Neustart von Chrome genügt ein Klick auf **Zu
   Ordnern lassen sich kombinieren.
 - **Sortierung** nach Ordner oder Aufnahmedatum (EXIF, sonst Datum im Dateinamen, sonst
   Änderungsdatum), **Filter** Bilder/PDF/Video, **Unterordner** einbeziehen, **Grösse** der Kacheln.
-- Klick auf ein Bild öffnet die **Grossansicht**: ← → blättern, Leertaste wählt aus, Esc schliesst.
-- **PDF:** in der Grossansicht werden alle Seiten gezeigt; einzelne Seiten ankreuzen.
+- Klick auf ein Bild öffnet die **Grossansicht**. Der Knopf **«✓ Auswählen & weiter»** (Taste Enter)
+  nimmt das Bild auf und öffnet sofort das nächste – so geht man einen Ordner zügig durch.
+  «Überspringen ›» (→), «‹ Zurück» (←), «Abwählen» (Leertaste), Esc schliesst.
+- **PDF:** in der Grossansicht geht «Auswählen & weiter» Seite für Seite; die Seitenleiste zeigt alle
+  Seiten mit Klickbox.
 - Unten die **Ablage** mit Anzahl und Miniaturen, «Weiter zur Diashow».
 
 ### 2 · Diashow bearbeiten
