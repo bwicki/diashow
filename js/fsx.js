@@ -129,11 +129,11 @@ export async function deleteShow(file) { const d = await dirHandle(SHOWDIR, true
 export const safeName = (n) => String(n || 'Diashow').replace(/[\\/:*?"<>|]+/g, '-').trim().slice(0, 120) || 'Diashow';
 
 /** Logo von ausserhalb des Stammordners einmalig nach _DIASHOWS/Logos kopieren. */
-export async function copyToLogos(file) {
-  const d = await dirHandle(SHOWDIR + '/Logos', true);
+export async function copyToLogos(file, sub = 'Logos') {
+  const d = await dirHandle(SHOWDIR + '/' + sub, true);
   const name = safeName(file.name);
   const fh = await d.getFileHandle(name, { create: true });
   const w = await fh.createWritable(); await w.write(file); await w.close();
-  invalidate(SHOWDIR + '/Logos');
-  return SHOWDIR + '/Logos/' + name;
+  invalidate(SHOWDIR + '/' + sub);
+  return SHOWDIR + '/' + sub + '/' + name;
 }

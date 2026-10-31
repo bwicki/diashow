@@ -72,6 +72,11 @@ werden nie verändert. Nach jedem Neustart von Chrome genügt ein Klick auf **Zu
   für transparente Logos); «Dieses Wasserzeichen auf alle Bild-Dias übernehmen» setzt es zugleich als Standard;
   verschiedene Logos in einer Diashow sind möglich. Logos ausserhalb des Stammordners werden einmalig
   nach `_DIASHOWS/Logos` kopiert.
+- **Zuschneiden** je Bild (frei oder 16:9, 4:3, 3:2, 1:1); das Original bleibt unverändert.
+- **+ Karte:** Karten-Folie mit Trajektorie aus GPX/IGC/KML (OpenStreetMap, Satellit, topografisch oder schlicht
+  ohne Internet); die Trajektorie entsteht während der Folie.
+- Ganze Diashow: **Bildtext aus Aufnahmedaten** (Datum, Zeit, Ort aus GPS) und **Hochformat mit unscharfem
+  Bildhintergrund** statt schwarzer Ränder.
 - Fehlt eine Datei (umbenannt/verschoben), ist das Dia rot markiert; **Per Dateiname neu suchen**
   findet sie im Stammordner.
 
@@ -81,7 +86,9 @@ werden nie verändert. Nach jedem Neustart von Chrome genügt ein Klick auf **Zu
 2. **Bildschirme:** Beamer anschliessen, in Windows mit `Win+P` **Erweitern** wählen. Chrome fragt
    einmal nach der Erlaubnis **Fenster verwalten**; danach ist der Beamer-Bildschirm wählbar.
 3. **Referentensicht öffnen** (Fenster auf dem Laptop), dann **Vorführung starten** (Vollbild auf dem
-   Beamer). Der **Klicker-Test** zeigt, welche Taste der Klicker sendet.
+   Beamer). Der **Klicker-Test** zeigt, welche Taste der Klicker sendet. **Probelauf im Fenster** spielt
+   alles schnell ohne Beamer ab.
+4. **Kapitel:** Titelfolien erscheinen in der Referentensicht als Kapitel-Knöpfe; Tasten 1–9 springen hin.
 
 | Taste / Klicker | Wirkung |
 |---|---|

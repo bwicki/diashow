@@ -13,7 +13,7 @@ export const DEF_WM = { path: 'app:img/wicki-logo.png', pos: 'tr', size: 10, op:
 export const TRANSITIONS = ['fade', 'slide', 'zoom', 'wipe', 'cube', 'black', 'circle'];
 
 export function defaultSettings() {
-  return { mode: 'auto', dur: 6, trDur: 1.0, order: 'fixed', loop: true, kenburns: true, captions: true, pool: [...TRANSITIONS], fit: 'contain', defWm: true };
+  return { mode: 'auto', dur: 6, trDur: 1.0, order: 'fixed', loop: true, kenburns: true, captions: true, pool: [...TRANSITIONS], fit: 'contain', defWm: true, autoCap: 'off', portraitBg: true };
 }
 export function newShow(name = '') {
   return { app: 'diashow', format: 1, name, created: new Date().toISOString(), modified: null, settings: defaultSettings(), slides: [] };
@@ -51,6 +51,12 @@ export function toggleSlide(path, page) {
 }
 export function addTitle(at, text, sub = '') {
   const s = { id: uid(), type: 'title', cap: text, sub, note: '', dur: null, tr: '', ts: { ...PRESETS.black } };
+  cur.show.slides.splice(at == null ? cur.show.slides.length : at, 0, s);
+  changed(true, 'slides');
+  return s;
+}
+export function addMap(at, track, cap = '') {
+  const s = { id: uid(), type: 'map', track, cap, note: '', dur: null, tr: '', map: { style: 'osm', color: '#e8590c', width: 4, anim: true } };
   cur.show.slides.splice(at == null ? cur.show.slides.length : at, 0, s);
   changed(true, 'slides');
   return s;

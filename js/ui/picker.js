@@ -54,3 +54,16 @@ async function chooseFile() {
     return p;
   } catch (e) { msg(t('logoCopyFail') + ' ' + (e?.message || e), 'err'); return null; }
 }
+
+/** Trajektorien-Datei (GPX, IGC, KML) wählen; ausserhalb des Stammordners → Kopie nach _DIASHOWS/Tracks. */
+export async function chooseTrack() {
+  let handle;
+  try {
+    [handle] = await window.showOpenFilePicker({ startIn: fsx.state.root || 'documents', types: [{ description: 'GPX / IGC / KML', accept: { 'application/octet-stream': ['.gpx', '.igc', '.kml'] } }] });
+  } catch (e) { if (e?.name !== 'AbortError') msg(String(e?.message || e), 'err'); return null; }
+  let parts = null;
+  try { parts = await fsx.state.root.resolve(handle); } catch { /* ausserhalb */ }
+  if (parts) return parts.join('/');
+  try { const p = await fsx.copyToLogos(await handle.getFile(), 'Tracks'); msg(t('trackCopied', { p })); return p; }
+  catch (e) { msg(t('logoCopyFail') + ' ' + (e?.message || e), 'err'); return null; }
+}

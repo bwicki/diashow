@@ -11,7 +11,9 @@ import { $, h, clear, msg, mmss, load, save } from '../util.js';
 import * as fsx from '../fsx.js';
 import { imageBlob, fileOf, probeVideo, thumb } from '../media.js';
 import { cur, slideKey, TRANSITIONS } from '../show.js';
-import { titleNode, wmNode, assetPaths, preloadAsset } from '../render.js';
+import { titleNode, wmNode, assetPaths, preloadAsset, cropView } from '../render.js';
+import { mountMap, loadTrack, trackThumb } from '../track.js';
+import { autoCaption } from '../geo.js';
 
 const prep = new Map();          // slideKey -> {ok, type, url, duration, err}
 let prepSig = ''; let preparing = null;
@@ -22,7 +24,7 @@ export const isRunning = () => !!run;
 
 /* =================================================================== Vorbereitung */
 function items() { return cur.show.slides; }
-function signature() { return items().map((s) => (s.type === 'title' ? 't' : slideKey(s.path, s.page)) + '|' + assetPaths(s).join('|')).join('\n'); }
+function signature() { return (cur.show.settings.autoCap || 'off') + '\n' + items().map((s) => (s.type === 'title' ? 't' : s.type === 'map' ? 'm|' + s.track : slideKey(s.path, s.page)) + '|' + assetPaths(s).join('|')).join('\n'); }
 async function prepare(onProg) {
   const sig = signature();
   if (sig === prepSig && !preparing) return;
@@ -32,7 +34,10 @@ async function prepare(onProg) {
     for (const s of list) {
       n++;
       for (const ap of assetPaths(s)) { try { await preloadAsset(ap); } catch (e) { msg(t('logoMissing', { p: ap }), 'warn'); } }
+      if (s.type === 'map') { try { await loadTrack(s.track); s._bad = ''; } catch (e) { s._bad = String(e?.message || e); } onProg?.(n, list.length); continue; }
       if (s.type !== 'file') { onProg?.(n, list.length); continue; }
+      const ac = cur.show.settings.autoCap || 'off';
+      if (ac !== 'off' && !s.cap) { try { s._auto = await autoCaption(s.path, ac); } catch { s._auto = ''; } } else s._auto = '';
       const k = slideKey(s.path, s.page);
       if (prep.get(k)?.ok) { onProg?.(n, list.length); continue; }
       try {
@@ -56,7 +61,7 @@ async function prepare(onProg) {
   try { await preparing; } finally { preparing = null; }
 }
 function problems() {
-  return items().map((s, i) => ({ s, i, p: s.type === 'file' ? prep.get(slideKey(s.path, s.page)) : { ok: true } })).filter((x) => x.p && !x.p.ok);
+  return items().map((s, i) => ({ s, i, p: s.type === 'file' ? prep.get(slideKey(s.path, s.page)) : s.type === 'map' && s._bad ? { ok: false, err: s._bad } : { ok: true } })).filter((x) => x.p && !x.p.ok);
 }
 
 /* =================================================================== Bildschirme */
@@ -88,6 +93,7 @@ export async function renderPresent(el) {
 
   const startBtn = h('button.btn.primary.big', { type: 'button', disabled: !n, onclick: () => start() }, '▶ ' + t('startShow'));
   const refBtn = h('button.btn', { type: 'button', disabled: !n, onclick: () => openRef(true) }, t('openRef'));
+  const testBtn = h('button.btn', { type: 'button', disabled: !n, onclick: () => start(0, { test: true }), title: t('testTip') }, t('testRun'));
 
   el.append(h('div.play', [
     h('div.card', [
@@ -112,7 +118,7 @@ export async function renderPresent(el) {
     h('div.card', [
       h('div.card-head', h('div.section-title', t('startTitle'))),
       h('div.card-body', [
-        h('div.row-actions', [refBtn, startBtn]),
+        h('div.row-actions', [refBtn, startBtn, testBtn]),
         h('p.note', { html: t('startHint') }),
         h('div.keytest', [h('span.lbl', t('keyTest')), h('span#keyTest.mono', lastKey || t('keyTestHint'))]),
         h('p.note', { html: t('keysHelp') }),
@@ -125,8 +131,8 @@ export async function renderPresent(el) {
   const probs = problems();
   status.textContent = probs.length ? t('prepDoneProbs', { n: n - probs.length, k: n, p: probs.length }) : t('prepDone', { n });
   status.className = probs.length ? 'warn' : 'ok';
-  clear(probBox).append(...probs.map((x) => h('div.prob', `${t('slide')} ${x.i + 1}: ${fsx.baseName(x.s.path)}${x.s.page ? ' · ' + t('pageN', { p: x.s.page }) : ''} – ${x.p.err}`)));
-  if (reported !== prepSig) { reported = prepSig; for (const x of probs) msg(`${t('slide')} ${x.i + 1}: ${x.s.path} – ${x.p.err}`, 'warn'); }
+  clear(probBox).append(...probs.map((x) => h('div.prob', `${t('slide')} ${x.i + 1}: ${fsx.baseName(x.s.path || x.s.track || '')}${x.s.page ? ' · ' + t('pageN', { p: x.s.page }) : ''} – ${x.p.err}`)));
+  if (reported !== prepSig) { reported = prepSig; for (const x of probs) msg(`${t('slide')} ${x.i + 1}: ${x.s.path || x.s.track} – ${x.p.err}`, 'warn'); }
 }
 
 /* =================================================================== Start / Ende */
@@ -134,6 +140,7 @@ function buildList() {
   const S = cur.show.settings;
   let list = items().map((s) => {
     if (s.type === 'title') return { s, type: 'title' };
+    if (s.type === 'map') return s._bad ? null : { s, type: 'map' };
     const p = prep.get(slideKey(s.path, s.page));
     return p?.ok ? { s, type: p.type, url: p.url, duration: p.duration } : null;
   }).filter(Boolean);
@@ -144,7 +151,7 @@ function buildList() {
   }
   return list;
 }
-async function start(from = 0) {
+async function start(from = 0, opt = {}) {
   if (run) return;
   if (preparing || signature() !== prepSig) { msg(t('stillPreparing'), 'warn'); return; }
   const list = buildList();
@@ -154,18 +161,23 @@ async function start(from = 0) {
   stage.append(h('div.black#blackOv'), h('div.hud#hud'));
   const bs = beamerScreen();
   // Reihenfolge wichtig: zuerst Vollbild anfordern, dann (gleicher Klick) das Begleitfenster öffnen.
-  let fsP;
-  try { fsP = stage.requestFullscreen(bs ? { screen: bs, navigationUI: 'hide' } : { navigationUI: 'hide' }); } catch (e) { fsP = Promise.reject(e); }
-  if (scr.withRef && bs && !(refWin && !refWin.closed)) openRef(false);
-  try { await fsP; } catch (e) { msg(t('fsFail') + ' ' + (e?.message || e), 'warn'); }
-  const S = cur.show.settings;
-  run = { list, i: -1, auto: S.mode === 'auto', paused: false, black: false, t0: Date.now(), slideT0: Date.now(), timer: null, layer: null, lastTr: null, ended: false, S };
+  if (!opt.test) {
+    let fsP;
+    try { fsP = stage.requestFullscreen(bs ? { screen: bs, navigationUI: 'hide' } : { navigationUI: 'hide' }); } catch (e) { fsP = Promise.reject(e); }
+    if (scr.withRef && bs && !(refWin && !refWin.closed)) openRef(false);
+    try { await fsP; } catch (e) { msg(t('fsFail') + ' ' + (e?.message || e), 'warn'); }
+  }
+  // Probelauf: im Fenster, schnell, automatisch, ohne Schleife
+  const S = opt.test ? { ...cur.show.settings, mode: 'auto', dur: 1.5, trDur: 0.4, loop: false, kenburns: false } : cur.show.settings;
+  stage.classList.toggle('test', !!opt.test);
+  run = { list, i: -1, auto: S.mode === 'auto', paused: false, black: false, t0: Date.now(), slideT0: Date.now(), timer: null, layer: null, lastTr: null, ended: false, S, test: !!opt.test,
+    chapters: list.map((x, i) => (x.type === 'title' ? i : -1)).filter((i) => i >= 0) };
   window.addEventListener('keydown', onKey, true);
   stage.onclick = () => next();
   stage.oncontextmenu = (e) => { e.preventDefault(); prev(); };
   run.tick = setInterval(updRef, 250);
   goTo(from, 1);
-  if (scr.withRef && bs && !(refWin && !refWin.closed)) msg(t('refBlocked'), 'warn');
+  if (!opt.test && scr.withRef && bs && !(refWin && !refWin.closed)) msg(t('refBlocked'), 'warn');
   attachRef();
 }
 function stop() {
@@ -183,7 +195,7 @@ function stop() {
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && run) stop(); });
 
 /* =================================================================== Ablauf */
-function slideSeconds(it) { return it.s.dur || (it.type === 'video' ? null : run.S.dur); }
+function slideSeconds(it) { return it.s.dur || (it.type === 'video' ? null : it.type === 'map' ? (run.test ? 3 : Math.max(run.S.dur, 12)) : run.S.dur); }
 function schedule() {
   clearTimeout(run.timer); run.timer = null;
   const it = run.list[run.i]; if (!it || run.ended) return;
@@ -194,7 +206,7 @@ function schedule() {
 function next(fromTimer) {
   if (!run) return;
   if (run.ended) { if (!fromTimer) end(); return; }
-  if (run.i >= run.list.length - 1) { if (run.S.loop) goTo(0, 1); else showEnd(); return; }
+  if (run.i >= run.list.length - 1) { if (run.S.loop) goTo(0, 1); else if (run.test) end(); else showEnd(); return; }
   goTo(run.i + 1, 1);
 }
 function prev() { if (!run) return; if (run.ended) { run.ended = false; goTo(run.list.length - 1, -1); return; } if (run.i > 0) goTo(run.i - 1, -1); }
@@ -206,7 +218,7 @@ function togglePause() {
   schedule(); updRef(true);
 }
 function toggleBlack() { if (!run) return; run.black = !run.black; $('blackOv').classList.toggle('on', run.black); updRef(true); }
-function end() { if (document.fullscreenElement) document.exitFullscreen().catch(() => stop()); else stop(); }
+function end() { if (run?.test) { const n = run.list.length; stop(); msg(t('testDone', { n })); return; } if (document.fullscreenElement) document.exitFullscreen().catch(() => stop()); else stop(); }
 function showEnd() {
   run.ended = true; clearTimeout(run.timer);
   const old = run.layer; const L = h('div.layer.endl', h('div.endtxt', t('endOfShow')));
@@ -226,15 +238,21 @@ function pickTr(s) {
 function makeLayer(it) {
   const S = run.S; const s = it.s;
   const L = h('div.layer');
+  const cv = cropView(s.crop);
   if (it.type === 'title') L.append(titleNode(s));
-  else if (it.type === 'image') L.append(h('div.kb', h('img', { src: it.url, alt: '', draggable: false, style: { objectFit: S.fit } })));
+  else if (it.type === 'map') L.append(h('div.mapwrap'), s.cap ? h('div.maptitle', s.cap) : null);
+  else if (it.type === 'image') {
+    if (S.portraitBg && S.fit === 'contain') L.append(h('div.pbg', h('img', { src: it.url, alt: '', style: { objectViewBox: cv } })));
+    L.append(h('div.kb', h('img', { src: it.url, alt: '', draggable: false, style: { objectFit: S.fit, objectViewBox: cv } })));
+  }
   else {
     const v = h('video', { src: it.url, playsInline: true, preload: 'auto', style: { objectFit: S.fit } });
     v.muted = !s.sound;
     v.onended = () => { if (run && run.list[run.i] === it && run.auto && !run.paused && !it.s.dur) next(true); };
     L.append(v);
   }
-  if (S.captions && s.cap && it.type !== 'title') L.append(h('div.cap', s.cap));
+  const capText = s.cap || s._auto;
+  if (S.captions && capText && it.type !== 'title' && it.type !== 'map') L.append(h('div.cap' + (s.cap ? '' : '.auto'), capText));
   const w = wmNode(s.wm); if (w) L.append(w);
   return L;
 }
@@ -259,8 +277,10 @@ async function goTo(i, dir) {
     if (fx[1]) old.animate(fx[1], opt);
     old.style.zIndex = fx[2] ? 2 : 0;   // Effekte, bei denen das alte Bild oben weggeht
     old.querySelector('video')?.pause();
-    setTimeout(() => old.remove(), D + 60);
+    const oldMap = old._map;
+    setTimeout(() => { oldMap?.stop(); old.remove(); }, D + 60);
   }
+  if (it.type === 'map') mountMap(L.querySelector('.mapwrap'), it.s, (slideSeconds(it) || 12) * 0.75).then((c) => { L._map = c; }).catch((e) => msg(String(e?.message || e), 'warn'));
   const v = L.querySelector('video');
   if (v) { v.currentTime = 0; v.play().catch(() => { v.muted = true; v.play().catch(() => {}); }); }
   if (img && run.S.kenburns && it.s.kind !== 'pdf') kenBurns(L.querySelector('.kb'), (slideSeconds(it) || 8) + run.S.trDur);
@@ -302,6 +322,7 @@ function onKey(e) {
   if (!run) return;
   if (e.key === 'F5' || (e.key === 'F5' && e.shiftKey)) { e.preventDefault(); return; }   // Logitech «Start»: kein Neuladen
   if (e.key === 'Escape') { e.preventDefault(); end(); return; }
+  if (/^[1-9]$/.test(e.key) && run.chapters.length) { const c = run.chapters[+e.key - 1]; if (c != null) { e.preventDefault(); goTo(c, c >= run.i ? 1 : -1); } return; }
   const a = actionOf(e.key); if (!a) return;
   e.preventDefault(); e.stopPropagation();
   if (a === 'next') next(); else if (a === 'prev') prev(); else if (a === 'pause') togglePause(); else if (a === 'black') toggleBlack();
@@ -348,6 +369,8 @@ function renderRef() {
     h('div.ref-side', [
       h('div.ref-lbl', t('next')), h('div.ref-box.small#rNext'),
       h('div.ref-clock', [h('div', h('b#rEl', '00:00'), h('span', t('elapsed'))), h('div', h('b#rRem', '–'), h('span', t('slideRemain'))), h('div', h('b#rNow', '--:--'), h('span', t('clock')))]),
+      run.chapters.length ? h('div.ref-lbl', t('chapters')) : null,
+      run.chapters.length ? h('div.ref-chap', run.chapters.map((ci, k) => h('button.btn.mini' + '.chap', { type: 'button', dataset: { ci }, onclick: () => goTo(ci, ci >= run.i ? 1 : -1), title: (k < 9 ? t('key') + ' ' + (k + 1) : '') }, (k < 9 ? (k + 1) + ' · ' : '') + ((run.list[ci].s.cap || '').split('\n')[0].slice(0, 28) || t('titleSlide'))))) : null,
       h('div.ref-lbl', t('note')), h('div.ref-note#rNote'),
       h('div.ref-ctl', [
         h('button.btn', { type: 'button', onclick: () => prev() }, '◀'),
@@ -368,7 +391,8 @@ function refImg(it) {
   if (!it) return h('div.ref-empty', '–');
   const wm = wmNode(it.s.wm);
   if (it.type === 'title') return h('div.ref-fit', titleNode(it.s), wm);
-  if (it.type === 'image') return h('div.ref-fit', h('img', { src: it.url, alt: '' }), wm);
+  if (it.type === 'image') return h('div.ref-fit', h('img', { src: it.url, alt: '', style: { objectViewBox: cropView(it.s.crop) } }), wm);
+  if (it.type === 'map') { const b = h('div.ref-fit'); loadTrack(it.s.track).then((tr) => b.append(trackThumb(tr, 640, 360))).catch(() => {}); return b; }
   const box = h('div.ref-vid', h('span', '▶ ' + t('video')));
   thumb(it.s.path).then((r) => box.prepend(h('img', { src: r.url, alt: '' }))).catch(() => {});
   return box;
@@ -401,10 +425,14 @@ function updRef(full) {
     clear(strip);
     run.list.forEach((x, i) => {
       const c = h('button.rs', { type: 'button', title: `${i + 1}`, onclick: () => goTo(i, i >= run.i ? 1 : -1) }, h('span', String(i + 1)));
-      if (x.type === 'title') c.prepend(h('div.rs-t', titleNode(x.s))); else thumb(x.s.path, x.s.page).then((r) => c.prepend(h('img', { src: r.url, alt: '' }))).catch(() => {});
+      if (x.type === 'title') c.prepend(h('div.rs-t', titleNode(x.s)));
+      else if (x.type === 'map') loadTrack(x.s.track).then((tr) => c.prepend(trackThumb(tr, 160, 90))).catch(() => {});
+      else thumb(x.s.path, x.s.page).then((r) => c.prepend(h('img', { src: r.url, alt: '' }))).catch(() => {});
       strip.append(c);
     });
   }
   strip.querySelectorAll('.rs').forEach((c, i) => c.classList.toggle('on', i === run.i));
+  const curCh = [...run.chapters].reverse().find((ci) => ci <= run.i);
+  D.querySelectorAll('.chap').forEach((b) => b.classList.toggle('on', +b.dataset.ci === curCh));
   strip.children[run.i]?.scrollIntoView({ block: 'nearest', inline: 'center' });
 }

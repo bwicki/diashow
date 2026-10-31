@@ -1,5 +1,20 @@
 # Changelog — Diashow
 
+## 1.4.0 — 2026-11-01
+
+- **Kapitel:** Titelfolien gelten als Kapitel. In der Referentensicht stehen sie als Knöpfe (aktuelles Kapitel
+  hervorgehoben); Tasten 1–9 springen während der Vorführung direkt zum Kapitel.
+- **Zuschneiden:** Ausschnitt je Bild (frei, 16:9, 4:3, 3:2, 1:1), Rahmen verschieben und an den Ecken ziehen;
+  das Original bleibt unverändert (CSS object-view-box). Wirkt in Kacheln, Vorschau, Beamer und Referentensicht.
+- **Hochformat aufwerten:** unscharfer, abgedunkelter Bildhintergrund statt schwarzer Ränder (Schalter, Standard an).
+- **Karten-Folie «+ Karte»:** Trajektorie aus GPX, IGC oder KML (Stammordner; sonst Kopie nach `_DIASHOWS/Tracks`)
+  auf OpenStreetMap, Satellit, topografisch oder schlicht (ohne Internet); die Trajektorie entsteht während der
+  Folie, Titel auf der Karte, Linienfarbe und -breite. Leaflet 1.9.4 mitgeliefert.
+- **Bildtext aus Aufnahmedaten:** aus / Datum / Datum + Zeit / Datum + Zeit + Ort (GPS → OpenStreetMap Nominatim,
+  Ort mit Länderkürzel, z. B. «CH-Baden»). Manueller Bildtext hat Vorrang.
+- **Probelauf im Fenster:** spielt alle Dias schnell (1.5 s) im Fenster ab, ohne Beamer.
+- Grossansicht: Bilder werden immer ganz gezeigt (Hochformat in voller Höhe).
+
 ## 1.3.1 — 2026-11-01
 
 - Meldungen schieben die Ansicht nicht mehr nach unten: sie stehen im **Protokoll** hinter dem Symbol

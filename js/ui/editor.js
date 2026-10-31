@@ -6,9 +6,11 @@ import { t } from '../i18n.js';
 import { $, h, clear, append, msg, dialog, mmss, load, save } from '../util.js';
 import * as fsx from '../fsx.js';
 import { thumb, dateOf, fileOf, forget, kindOf, qualityFlags, hamming } from '../media.js';
-import { cur, changed, onChange, addTitle, TRANSITIONS, DEF_WM } from '../show.js';
-import { titleNode, wmNode, styleWm, tstyle, PRESETS, WM_DEFAULT, BUILTIN } from '../render.js';
-import { pickImage } from './picker.js';
+import { cur, changed, onChange, addTitle, addMap, TRANSITIONS, DEF_WM } from '../show.js';
+import { titleNode, wmNode, styleWm, tstyle, PRESETS, WM_DEFAULT, BUILTIN, cropView } from '../render.js';
+import { loadTrack, trackThumb, MAP_DEFAULT } from '../track.js';
+import { cropDialog } from './crop.js';
+import { pickImage, chooseTrack } from './picker.js';
 import { go } from '../app.js';
 
 let root = null; let selId = null; let dragId = null; let anchor = null;
@@ -33,12 +35,13 @@ function renderBar() {
   clear($('edBar')).append(
     h('b', t('order')), h('span.note', t('orderHint')), h('span.sp'),
     h('button.btn', { type: 'button', onclick: newTitleDlg }, t('addTitle')),
+    h('button.btn', { type: 'button', onclick: newMapDlg }, t('addMap')),
     h('button.btn', { type: 'button', onclick: selectAllSlides }, t('selectAllSlides')),
     h('button.btn', { type: 'button', onclick: shuffle }, t('shuffleOnce')),
     h('button.btn', { type: 'button', onclick: sortByDate }, t('sortDate')),
     h('button.btn', { type: 'button', onclick: () => go('lib') }, t('addImages')),
     h('label.ctl', t('show'), h('select#edFilter', { onchange: (e) => { filter = e.target.value; save('diashow.ed.filter', filter); applyFilter(); } },
-      [['all', t('fAll')], ['flagged', t('fFlagged')], ['lowres', '▦ ' + t('qL1')], ['blur', '◌ ' + t('qL2')], ['dup', '⧉ ' + t('qL3')], ['img', t('fJpgPng')], ['heic', 'HEIC'], ['raw', 'RAW'], ['pdf', 'PDF'], ['video', t('fVideoOnly')], ['title', t('fTitles')], ['nowm', t('fNoWm')]]
+      [['all', t('fAll')], ['flagged', t('fFlagged')], ['lowres', '▦ ' + t('qL1')], ['blur', '◌ ' + t('qL2')], ['dup', '⧉ ' + t('qL3')], ['img', t('fJpgPng')], ['heic', 'HEIC'], ['raw', 'RAW'], ['pdf', 'PDF'], ['video', t('fVideoOnly')], ['title', t('fTitles')], ['map', t('fMaps')], ['nowm', t('fNoWm')]]
         .map(([v, l]) => h('option', { value: v, selected: v === filter }, l)))),
     h('span.note#edCount'),
     h('label.ctl', t('size'), h('input', { type: 'range', min: 90, max: 420, value: cardSize, oninput: (e) => { cardSize = +e.target.value; box()?.style.setProperty('--sw', cardSize + 'px'); }, onchange: () => save('diashow.ed.size', cardSize) })),
@@ -67,7 +70,9 @@ function renderSlides() {
 }
 function thContent(s) {
   const n = [];
-  if (s.type === 'title') n.push(titleNode(s)); else n.push(h('div.ph'));
+  if (s.type === 'title') n.push(titleNode(s));
+  else if (s.type === 'map') { const ph = h('div.ph', h('span', '🗺')); n.push(ph); loadTrack(s.track).then((tr) => ph.replaceWith(trackThumb(tr))).catch((e) => ph.replaceChildren(h('span', String(e?.message || e)))); }
+  else n.push(h('div.ph'));
   const w = wmNode(s.wm); if (w) n.push(w);
   return n;
 }
@@ -82,7 +87,7 @@ function card(s, i) {
       s.kind === 'video' ? h('span.vb', s.sound ? '🔊' : '🔇') : null,
       h('div.qflags'),
     ]),
-    h('div.inf', h('span.nm', s.type === 'title' ? t('titleSlide') : fsx.baseName(s.path) + (s.page ? ' · ' + t('pageN', { p: s.page }) : '')), h('span.dim', s.type === 'title' ? '' : (fsx.parentOf(s.path).split('/').pop() || ''))),
+    h('div.inf', h('span.nm', s.type === 'title' ? t('titleSlide') : s.type === 'map' ? '🗺 ' + fsx.baseName(s.track || '') : fsx.baseName(s.path) + (s.page ? ' · ' + t('pageN', { p: s.page }) : '')), h('span.dim', s.type === 'file' ? (fsx.parentOf(s.path).split('/').pop() || '') : '')),
     s.cap && s.type !== 'title' ? h('div.capl', s.cap) : null,
   ]);
   el.onclick = (e) => {
@@ -106,7 +111,7 @@ function card(s, i) {
     cur.show.slides.splice(to, 0, ...moving); changed(true, 'slides');
   };
   if (s.type === 'file') {
-    thumb(s.path, s.page).then((r) => { el.querySelector('.ph')?.replaceWith(h('img', { src: r.url, alt: '', draggable: false })); if (s.kind === 'video' && r.duration) s._dur = r.duration; missing.delete(s.id); el.classList.remove('missing'); noteQ(s, r); })
+    thumb(s.path, s.page).then((r) => { el.querySelector('.ph')?.replaceWith(h('img', { src: r.url, alt: '', draggable: false, style: { objectViewBox: cropView(s.crop) } })); if (s.kind === 'video' && r.duration) s._dur = r.duration; missing.delete(s.id); el.classList.remove('missing'); noteQ(s, r); })
       .catch(async () => {
         try { await fileOf(s.path); el.querySelector('.ph')?.replaceChildren(h('span', s.kind === 'video' ? t('videoUnplayable') : t('noPreview'))); }
         catch { missing.add(s.id); el.classList.add('missing'); el.querySelector('.ph')?.replaceChildren(h('span', t('fileMissing'))); if (s.id === selId) renderSide(); }
@@ -118,7 +123,8 @@ function card(s, i) {
 function refreshCard(s) {
   const el = box()?.querySelector(`[data-id="${s.id}"] .thc`); if (!el) return;
   const img = el.querySelector(':scope > img');
-  clear(el); append(el, s.type === 'title' ? [titleNode(s)] : [img || h('div.ph')]);
+  if (img) img.style.objectViewBox = cropView(s.crop);
+  clear(el); append(el, s.type === 'title' ? [titleNode(s)] : s.type === 'map' ? thContent({ ...s, wm: null }) : [img || h('div.ph')]);
   const w = wmNode(s.wm); if (w) el.append(w);
 }
 
@@ -169,6 +175,7 @@ function visible(s) {
     case 'dup': return !!flagsOf(s).dup;
     case 'img': return s.kind === 'image';
     case 'title': return s.type === 'title';
+    case 'map': return s.type === 'map';
     case 'nowm': return s.type === 'file' && !s.wm?.path;
     default: return s.kind === filter;
   }
@@ -214,7 +221,8 @@ function preview(s) {
   const fill = () => {
     clear(pv);
     if (s.type === 'title') pv.append(titleNode(s));
-    else { const im = h('img', { alt: '' }); pv.append(im); thumb(s.path, s.page).then((r) => { im.src = r.url; }).catch(() => {}); }
+    else if (s.type === 'map') loadTrack(s.track).then((tr) => pv.prepend(trackThumb(tr, 640, 360, (s.map || MAP_DEFAULT).color))).catch(() => {});
+    else { const im = h('img', { alt: '', style: { objectViewBox: cropView(s.crop) } }); pv.append(im); thumb(s.path, s.page).then((r) => { im.src = r.url; }).catch(() => {}); }
     const w = wmNode(s.wm); if (w) pv.append(w);
   };
   fill(); pv._fill = fill;
@@ -230,6 +238,7 @@ function renderSingle(side, s) {
   if (missing.has(s.id)) side.append(h('div.missbox', [h('p.err', t('fileMissingLong')), h('button.btn', { type: 'button', onclick: () => relocate(s) }, t('searchByName'))]));
 
   if (s.type === 'title') renderTitleEditor(side, s, upd);
+  else if (s.type === 'map') renderMapEditor(side, s, upd);
   else append(side, [
     field(t('caption'), h('input', { type: 'text', value: s.cap || '', placeholder: t('captionPh'), oninput: (e) => { s.cap = e.target.value; changed(true, 'meta'); }, onchange: renderSlides })),
   ]);
@@ -249,7 +258,10 @@ function renderSingle(side, s) {
       h('span.sp'),
       h('button.btn', { type: 'button', onclick: removeSel }, t('remove')),
     ]),
-    s.type === 'file' ? h('p.note.crop', t('cropLater')) : null,
+    s.type === 'file' && s.kind !== 'video' ? h('div.row-actions', [
+      h('button.btn', { type: 'button', onclick: async () => { const c = await cropDialog(s); if (c === undefined) return; if (c) s.crop = c; else delete s.crop; changed(true, 'meta'); pv._fill(); refreshCard(s); renderSide(); } }, s.crop ? t('cropEdit') : t('cropBtn')),
+      s.crop ? h('button.btn', { type: 'button', onclick: () => { delete s.crop; changed(true, 'meta'); pv._fill(); refreshCard(s); renderSide(); } }, t('cropRemove')) : null,
+    ]) : null,
   ]);
 }
 
@@ -293,6 +305,54 @@ function renderTitleEditor(side, s, upd) {
     st.logoPath ? row(t('position'), sel([['above', t('pos_above')], ['below', t('pos_below')], ['tl', t('pos_tl')], ['tc', t('pos_tc')], ['tr', t('pos_tr')], ['bl', t('pos_bl')], ['bc', t('pos_bc')], ['br', t('pos_br')]], st.logoPos, (v) => set('logoPos', v))) : null,
     st.logoPath ? row(t('logoSize'), range(5, 60, 1, st.logoSize, (v) => set('logoSize', v))) : null,
   ]);
+}
+
+/* ---------- Karten-Folie ---------- */
+function renderMapEditor(side, s, upd) {
+  const m = () => (s.map = { ...MAP_DEFAULT, ...(s.map || {}) });
+  const o = m();
+  const info = h('span.small');
+  loadTrack(s.track).then((tr) => { info.textContent = t('trackInfo', { n: tr.pts.length, km: tr.dist.toFixed(1) }); }).catch((e) => { info.textContent = String(e?.message || e); });
+  append(side, [
+    h('div.section-title.mt', t('mapEditor')),
+    field(t('mapTitle'), h('textarea', { rows: 2, value: s.cap || '', placeholder: t('mapTitlePh'), oninput: (e) => { s.cap = e.target.value; changed(true, 'meta'); } })),
+    row(t('trackFile'), h('span.inline', h('span.small', fsx.baseName(s.track || '')), h('button.btn.mini', { type: 'button', onclick: async () => { const p = await chooseTrack(); if (p) { s.track = p; changed(true, 'slides'); } } }, t('replace')))),
+    row('', info),
+    row(t('mapStyle'), sel([['osm', t('map_osm')], ['sat', t('map_sat')], ['topo', t('map_topo')], ['plain', t('map_plain')]], o.style, (v) => { m().style = v; changed(true, 'meta'); })),
+    row(t('lineColor'), color(o.color, (v) => { m().color = v; upd(); })),
+    row(t('lineWidth'), range(2, 10, 1, o.width, (v) => { m().width = v; changed(true, 'meta'); })),
+    chk(t('mapAnim'), o.anim, (v) => { m().anim = v; }),
+    h('p.note', t('mapHint')),
+  ]);
+}
+/** Gemeinsamer Teil der Einfüge-Dialoge: Ort (vor/nach dem markierten Dia, Anfang, Schluss). */
+function insertChooser() {
+  const i = idx(selId); const n = cur.show.slides.length;
+  const st = { where: n && i >= 0 ? 'before' : 'end' };
+  const opt = (v, label, dis) => h('label.check', h('input', { type: 'radio', name: 'tw', checked: v === st.where, disabled: dis, onchange: () => { st.where = v; } }), label);
+  st.node = h('div', [h('label.lbl', t('insertWhere')), h('div.radios', [
+    opt('before', i >= 0 ? t('insBefore', { n: i + 1 }) : t('insBeforeSel'), i < 0),
+    opt('after', i >= 0 ? t('insAfter', { n: i + 1 }) : t('insAfterSel'), i < 0),
+    opt('start', t('insStart')), opt('end', t('insEnd')),
+  ])]);
+  st.at = () => Math.max(0, st.where === 'before' ? i : st.where === 'after' ? i + 1 : st.where === 'start' ? 0 : n);
+  return st;
+}
+async function newMapDlg() {
+  let track = null;
+  const lbl = h('span.small', t('none'));
+  const title = h('input', { type: 'text', value: '', placeholder: t('mapTitlePh') });
+  const pos = insertChooser();
+  const r = await dialog(t('addMapTitle'), [
+    h('label.lbl', t('trackFile')), h('div.row-actions', [h('button.btn', { type: 'button', onclick: async () => { const p = await chooseTrack(); if (p) { track = p; lbl.textContent = fsx.baseName(p); } } }, t('choose')), lbl]),
+    h('p.note', t('trackHint')),
+    h('label.lbl', t('mapTitle')), title, pos.node,
+  ], [{ label: t('cancel'), value: null }, { label: t('insert'), value: 'ok', primary: true }], { enter: false });
+  if (r !== 'ok') return;
+  if (!track) { msg(t('noTrack'), 'warn'); return; }
+  try { await loadTrack(track); } catch (e) { msg(t('trackBad') + ' ' + (e?.message || e), 'err'); return; }
+  const s = addMap(pos.at(), track, title.value.trim());
+  selectOnly(s.id); changed(true, 'slides');
 }
 
 /* ---------- Wasserzeichen (ein oder mehrere Dias) ---------- */
@@ -370,6 +430,8 @@ function renderWhole(side) {
     chk(t('loop'), S.loop, (v) => { S.loop = v; }),
     chk(t('kenburns'), S.kenburns, (v) => { S.kenburns = v; }),
     chk(t('captions'), S.captions, (v) => { S.captions = v; }),
+    row(t('autoCap'), sel([['off', t('ac_off')], ['date', t('ac_date')], ['datetime', t('ac_datetime')], ['datetimeplace', t('ac_place')]], S.autoCap || 'off', (v) => { S.autoCap = v; changed(true, 'meta'); })),
+    chk(t('portraitBg'), S.portraitBg !== false, (v) => { S.portraitBg = v; }),
     chk(t('defWm', { l: logoLabel((S.wmDefault || DEF_WM).path) }), S.defWm, (v) => { S.defWm = v; }),
     h('div.lbl.mt', t('pool')),
     h('div.chips', TRANSITIONS.map((x) => h('button.chip' + (S.pool.includes(x) ? '.on' : ''), { type: 'button', onclick: () => { S.pool = S.pool.includes(x) ? S.pool.filter((y) => y !== x) : [...S.pool, x]; if (!S.pool.length) S.pool = ['fade']; changed(true, 'meta'); renderSide(); } }, t('tr_' + x)))),

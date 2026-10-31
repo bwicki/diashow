@@ -97,3 +97,10 @@ function hexA(hex, a) {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if (!m) return `rgba(255,255,255,${a})`;
   const n = parseInt(m[1], 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`;
 }
+
+/** Ausschnitt (Bruchteile 0..1) als CSS object-view-box – das Original bleibt unverändert. */
+export function cropView(c) {
+  if (!c || (c.x <= 0.0005 && c.y <= 0.0005 && c.w >= 0.999 && c.h >= 0.999)) return '';
+  const pc = (v) => (Math.max(0, v) * 100).toFixed(2) + '%';
+  return `inset(${pc(c.y)} ${pc(1 - c.x - c.w)} ${pc(1 - c.y - c.h)} ${pc(c.x)})`;
+}
