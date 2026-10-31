@@ -11,6 +11,7 @@ import { $, h, clear, msg, mmss, load, save } from '../util.js';
 import * as fsx from '../fsx.js';
 import { imageBlob, fileOf, probeVideo, thumb } from '../media.js';
 import { cur, slideKey, TRANSITIONS } from '../show.js';
+import { titleNode, wmNode, assetPaths, preloadAsset } from '../render.js';
 
 const prep = new Map();          // slideKey -> {ok, type, url, duration, err}
 let prepSig = ''; let preparing = null;
@@ -21,7 +22,7 @@ export const isRunning = () => !!run;
 
 /* =================================================================== Vorbereitung */
 function items() { return cur.show.slides; }
-function signature() { return items().map((s) => s.type === 'title' ? 't' : slideKey(s.path, s.page)).join('\n'); }
+function signature() { return items().map((s) => (s.type === 'title' ? 't' : slideKey(s.path, s.page)) + '|' + assetPaths(s).join('|')).join('\n'); }
 async function prepare(onProg) {
   const sig = signature();
   if (sig === prepSig && !preparing) return;
@@ -30,6 +31,7 @@ async function prepare(onProg) {
     const list = items(); let n = 0;
     for (const s of list) {
       n++;
+      for (const ap of assetPaths(s)) { try { await preloadAsset(ap); } catch (e) { msg(t('logoMissing', { p: ap }), 'warn'); } }
       if (s.type !== 'file') { onProg?.(n, list.length); continue; }
       const k = slideKey(s.path, s.page);
       if (prep.get(k)?.ok) { onProg?.(n, list.length); continue; }
@@ -224,7 +226,7 @@ function pickTr(s) {
 function makeLayer(it) {
   const S = run.S; const s = it.s;
   const L = h('div.layer');
-  if (it.type === 'title') L.append(h('div.tslide', h('div.ttext', s.cap || '')));
+  if (it.type === 'title') L.append(titleNode(s));
   else if (it.type === 'image') L.append(h('div.kb', h('img', { src: it.url, alt: '', draggable: false, style: { objectFit: S.fit } })));
   else {
     const v = h('video', { src: it.url, playsInline: true, preload: 'auto', style: { objectFit: S.fit } });
@@ -233,6 +235,7 @@ function makeLayer(it) {
     L.append(v);
   }
   if (S.captions && s.cap && it.type !== 'title') L.append(h('div.cap', s.cap));
+  const w = wmNode(s.wm); if (w) L.append(w);
   return L;
 }
 async function goTo(i, dir) {
@@ -363,8 +366,9 @@ function renderRef() {
 }
 function refImg(it) {
   if (!it) return h('div.ref-empty', '–');
-  if (it.type === 'title') return h('div.tslide.mini', h('div.ttext', it.s.cap || ''));
-  if (it.type === 'image') return h('img', { src: it.url, alt: '' });
+  const wm = wmNode(it.s.wm);
+  if (it.type === 'title') return h('div.ref-fit', titleNode(it.s), wm);
+  if (it.type === 'image') return h('div.ref-fit', h('img', { src: it.url, alt: '' }), wm);
   const box = h('div.ref-vid', h('span', '▶ ' + t('video')));
   thumb(it.s.path).then((r) => box.prepend(h('img', { src: r.url, alt: '' }))).catch(() => {});
   return box;
@@ -397,7 +401,7 @@ function updRef(full) {
     clear(strip);
     run.list.forEach((x, i) => {
       const c = h('button.rs', { type: 'button', title: `${i + 1}`, onclick: () => goTo(i, i >= run.i ? 1 : -1) }, h('span', String(i + 1)));
-      if (x.type === 'title') c.append(h('em', (x.s.cap || '').slice(0, 30))); else thumb(x.s.path, x.s.page).then((r) => c.prepend(h('img', { src: r.url, alt: '' }))).catch(() => {});
+      if (x.type === 'title') c.prepend(h('div.rs-t', titleNode(x.s))); else thumb(x.s.path, x.s.page).then((r) => c.prepend(h('img', { src: r.url, alt: '' }))).catch(() => {});
       strip.append(c);
     });
   }

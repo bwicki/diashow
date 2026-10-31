@@ -62,9 +62,12 @@ export function toJSON() {
     app: 'diashow', format: 1, name: s.name, created: s.created, modified: new Date().toISOString(),
     settings: s.settings,
     slides: s.slides.map((x) => {
-      const o = { id: x.id, type: x.type };
-      if (x.type === 'file') { o.path = x.path; if (x.page) o.page = x.page; if (x.kind === 'video') o.sound = !!x.sound; }
-      if (x.cap) o.cap = x.cap; if (x.note) o.note = x.note; if (x.dur) o.dur = x.dur; if (x.tr) o.tr = x.tr;
+      const o = {};
+      for (const [k, v] of Object.entries(x)) {
+        if (k === 'kind' || k.startsWith('_') || v == null || v === '' || v === false) continue;
+        if (k === 'sound' && x.kind !== 'video') continue;
+        o[k] = v;
+      }
       return o;
     }),
   };

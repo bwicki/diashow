@@ -1,5 +1,18 @@
 # Changelog — Diashow
 
+## 1.1.0 — 2026-10-31
+
+- **Titelfolien-Editor:** Titel und Untertitel, Vorlagen (Nacht, Tag, Amber, Grün, Schwarz, Weiss),
+  Hintergrund als Verlauf, Farbe oder Bild (mit Abdunkeln), Textfarbe, Titel- und Untertitelgrösse,
+  Schriftart, fett, Ausrichtung links/Mitte/rechts und oben/Mitte/unten, Logo mit Position und Grösse.
+  Live-Vorschau; Titelfolie duplizieren.
+- **Wasserzeichen:** Logo auf einzelnen oder mehreren Dias (Position, Grösse, Deckkraft); verschiedene
+  Logos in einer Diashow möglich. Eingebaut: Wicki Partners Ballonteam; weitere Logos «Aus Ordner wählen»
+  (Dateien ausserhalb des Stammordners werden nach `_DIASHOWS/Logos` kopiert), zuletzt verwendete Logos.
+- **Mehrfachauswahl** im Editor: Ctrl-Klick, Shift-Klick, Ctrl+A / «Alle markieren»; Dauer, Übergang,
+  Wasserzeichen und Entfernen für alle markierten; mehrere Dias gemeinsam verschieben.
+- Darstellung von Titel und Wasserzeichen identisch in Editor, Referentensicht und Beamer.
+
 ## 1.0.4 — 2026-10-31
 
 - Helles Favicon und App-Icon (Variante V3: Ballon mit ▶), dazu favicon.ico und Apple-Touch-Icon.

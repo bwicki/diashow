@@ -57,6 +57,13 @@ werden nie verändert. Nach jedem Neustart von Chrome genügt ein Klick auf **Zu
 - Ganze Diashow: **Auto/Manuell**, Standard- und Übergangsdauer, Reihenfolge **wie festgelegt** oder
   **zufällig**, Bildfüllung, Endlosschleife, Ken-Burns-Bewegung, Bildtexte, **Pool** der
   Zufallsübergänge.
+- **Mehrfachauswahl:** Ctrl-Klick, Shift-Klick oder Ctrl+A («Alle markieren»); Dauer, Übergang,
+  Wasserzeichen und Entfernen gelten dann für alle markierten Dias.
+- **Titelfolien gestalten:** Titel, Untertitel, Vorlagen, Hintergrund (Verlauf, Farbe oder Bild mit
+  Abdunkeln), Textfarbe und -grösse, Schriftart, Ausrichtung, Logo mit Position und Grösse.
+- **Wasserzeichen:** Logo über einzelnen oder markierten Dias (Position, Grösse, Deckkraft);
+  verschiedene Logos in einer Diashow sind möglich. Logos ausserhalb des Stammordners werden einmalig
+  nach `_DIASHOWS/Logos` kopiert.
 - Fehlt eine Datei (umbenannt/verschoben), ist das Dia rot markiert; **Per Dateiname neu suchen**
   findet sie im Stammordner.
 
