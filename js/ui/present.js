@@ -119,6 +119,7 @@ export async function renderPresent(el) {
       h('div.card-head', h('div.section-title', t('startTitle'))),
       h('div.card-body', [
         h('div.row-actions', [refBtn, startBtn, testBtn]),
+        h('label.check', h('input', { type: 'checkbox', checked: load('diashow.windowed', false), onchange: (e) => save('diashow.windowed', e.target.checked) }), t('windowed')),
         h('p.note', { html: t('startHint') }),
         h('div.keytest', [h('span.lbl', t('keyTest')), h('span#keyTest.mono', lastKey || t('keyTestHint'))]),
         h('label.check', h('input', { type: 'checkbox', checked: bIsBlack(), onchange: (e) => save('diashow.bBlack', e.target.checked) }), t('bBlack')),
@@ -162,7 +163,8 @@ async function start(from = 0, opt = {}) {
   stage.append(h('div.black#blackOv'), h('div.hud#hud'));
   const bs = beamerScreen();
   // Reihenfolge wichtig: zuerst Vollbild anfordern, dann (gleicher Klick) das Begleitfenster öffnen.
-  if (!opt.test) {
+  const windowed = !opt.test && load('diashow.windowed', false);
+  if (!opt.test && !windowed) {
     let fsP;
     try { fsP = stage.requestFullscreen(bs ? { screen: bs, navigationUI: 'hide' } : { navigationUI: 'hide' }); } catch (e) { fsP = Promise.reject(e); }
     if (scr.withRef && bs && !(refWin && !refWin.closed)) openRef(false);
@@ -170,8 +172,8 @@ async function start(from = 0, opt = {}) {
   }
   // Probelauf: im Fenster, schnell, automatisch, ohne Schleife
   const S = opt.test ? { ...cur.show.settings, mode: 'auto', dur: 1.5, trDur: 0.4, loop: false, kenburns: false } : cur.show.settings;
-  stage.classList.toggle('test', !!opt.test);
-  run = { list, i: -1, auto: S.mode === 'auto', paused: false, black: false, t0: Date.now(), slideT0: Date.now(), timer: null, layer: null, lastTr: null, ended: false, S, test: !!opt.test,
+  stage.classList.toggle('test', !!opt.test); stage.classList.toggle('windowed', windowed);
+  run = { list, i: -1, auto: S.mode === 'auto', paused: false, black: false, t0: Date.now(), slideT0: Date.now(), timer: null, layer: null, lastTr: null, ended: false, S, test: !!opt.test, windowed,
     chapters: list.map((x, i) => (x.type === 'title' ? i : -1)).filter((i) => i >= 0) };
   window.addEventListener('keydown', onKey, true);
   stage.onclick = () => next();
@@ -193,7 +195,13 @@ function stop() {
   if (refWin && !refWin.closed) renderRefIdle();
   if (root?.classList.contains('on')) renderPresent(root);
 }
-document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && run) stop(); });
+document.addEventListener('fullscreenchange', () => {
+  if (document.fullscreenElement || !run || run.windowed || run.test) return;
+  // Vollbild verloren, weil die Referentensicht auf demselben Bildschirm angeklickt wurde → im Fenster weiterlaufen
+  let refFocus = false; try { refFocus = !!(refWin && !refWin.closed && refWin.document.hasFocus()); } catch { /* egal */ }
+  if (refFocus) { run.windowed = true; $('stage').classList.add('windowed'); msg(t('fsLost'), 'warn'); return; }
+  stop();
+});
 
 /* =================================================================== Ablauf */
 function slideSeconds(it) { return it.s.dur || (it.type === 'video' ? null : it.type === 'map' ? (run.test ? 3 : Math.max(run.S.dur, 12)) : run.S.dur); }
@@ -219,7 +227,7 @@ function togglePause() {
   schedule(); updRef(true);
 }
 function toggleBlack() { if (!run) return; run.black = !run.black; $('blackOv').classList.toggle('on', run.black); updRef(true); }
-function end() { if (run?.test) { const n = run.list.length; stop(); msg(t('testDone', { n })); return; } if (document.fullscreenElement) document.exitFullscreen().catch(() => stop()); else stop(); }
+function end() { if (run?.windowed && !document.fullscreenElement) { stop(); return; } if (run?.test) { const n = run.list.length; stop(); msg(t('testDone', { n })); return; } if (document.fullscreenElement) document.exitFullscreen().catch(() => stop()); else stop(); }
 function showEnd() {
   run.ended = true; clearTimeout(run.timer);
   const old = run.layer; const L = h('div.layer.endl', h('div.endtxt', t('endOfShow')));
@@ -408,7 +416,14 @@ function openRef(focus) {
 window.__diashowAttach = (w) => { refWin = w; attachRef(); };
 function attachRef() {
   if (!refWin || refWin.closed || !refWin.document.getElementById('ref')) return;
-  if (!refWin.__keys) { refWin.addEventListener('keydown', (e) => { if (run) onKey(e); }, true); refWin.__keys = true; }
+  if (!refWin.__keys) {
+    refWin.addEventListener('keydown', (e) => {
+      if (e.key === 'F5') e.preventDefault();               // Klicker-Start lädt die Referentensicht nicht neu
+      if (run) onKey(e);
+      else if (e.key === 'F5' || e.key === 'Enter') { e.preventDefault(); window.focus(); }
+    }, true);
+    refWin.__keys = true;
+  }
   refWin.document.title = t('refTitle') + ' – ' + (cur.show.name || 'Diashow');
   if (run) renderRef(); else renderRefIdle();
 }

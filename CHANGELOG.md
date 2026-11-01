@@ -1,5 +1,13 @@
 # Changelog — Diashow
 
+## 1.5.1 — 2026-11-01
+
+- **Referentensicht auf nur einem Bildschirm:** Klickte man in die Referentensicht, verlor das Beamer-Fenster das
+  Vollbild und die Vorführung brach ab – danach reagierten die Tasten nicht mehr. Jetzt läuft die Vorführung im
+  Fenster weiter und bleibt über die Referentensicht steuerbar.
+- Neu in «Vorführen»: **Ohne Vollbild starten** (zum Üben mit Referentensicht auf einem Bildschirm).
+- F5 in der Referentensicht lädt sie nicht mehr neu.
+
 ## 1.5.0 — 2026-11-01
 
 - **Springen während der Vorführung:** Dia-Nummer eintippen (z. B. 134) und Enter – oder kurz warten – springt zu
