@@ -62,6 +62,7 @@ werden nie verändert. Nach jedem Neustart von Chrome genügt ein Klick auf **Zu
 - Ganze Diashow: **Auto/Manuell**, Standard- und Übergangsdauer, Reihenfolge **wie festgelegt** oder
   **zufällig**, Bildfüllung, Endlosschleife, Ken-Burns-Bewegung, Bildtexte, **Pool** der
   Zufallsübergänge.
+- **Grossansicht:** Doppelklick auf eine Kachel oder ⤢ zeigt das Dia wie auf dem Beamer; ← → blättern.
 - **Mehrfachauswahl:** Ctrl-Klick, Shift-Klick oder Ctrl+A («Alle markieren»); Dauer, Übergang,
   Wasserzeichen und Entfernen gelten dann für alle markierten Dias.
 - **Titelfolien gestalten:** Titel, Untertitel, Vorlagen, Hintergrund (Verlauf, Farbe oder Bild mit

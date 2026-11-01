@@ -5,7 +5,7 @@
 import { t } from '../i18n.js';
 import { $, h, clear, append, msg, dialog, mmss, load, save } from '../util.js';
 import * as fsx from '../fsx.js';
-import { thumb, dateOf, fileOf, forget, kindOf, qualityFlags, hamming } from '../media.js';
+import { thumb, dateOf, fileOf, forget, kindOf, qualityFlags, hamming, imageBlob } from '../media.js';
 import { cur, changed, onChange, addTitle, addMap, TRANSITIONS, DEF_WM } from '../show.js';
 import { titleNode, wmNode, styleWm, tstyle, PRESETS, WM_DEFAULT, BUILTIN, cropView } from '../render.js';
 import { loadTrack, trackThumb, MAP_DEFAULT } from '../track.js';
@@ -86,6 +86,7 @@ function card(s, i) {
       h('span.trb', trName + (dur ? ' · ' + dur : '')),
       s.kind === 'video' ? h('span.vb', s.sound ? '🔊' : '🔇') : null,
       h('div.qflags'),
+      h('button.zoom', { type: 'button', title: t('viewLarge'), onclick: (e) => { e.stopPropagation(); openViewer(s.id); } }, '⤢'),
     ]),
     h('div.inf', h('span.nm', s.type === 'title' ? t('titleSlide') : s.type === 'map' ? '🗺 ' + fsx.baseName(s.track || '') : fsx.baseName(s.path) + (s.page ? ' · ' + t('pageN', { p: s.page }) : '')), h('span.dim', s.type === 'file' ? (fsx.parentOf(s.path).split('/').pop() || '') : '')),
     s.cap && s.type !== 'title' ? h('div.capl', s.cap) : null,
@@ -96,6 +97,7 @@ function card(s, i) {
     else selectOnly(s.id);
     markSel(); renderSide();
   };
+  el.ondblclick = () => openViewer(s.id);
   el.ondragstart = (e) => { dragId = s.id; el.classList.add('drag'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', s.id); };
   el.ondragend = () => { el.classList.remove('drag'); box().querySelectorAll('.over').forEach((x) => x.classList.remove('over', 'after')); };
   el.ondragover = (e) => { e.preventDefault(); const r = el.getBoundingClientRect(); el.classList.add('over'); el.classList.toggle('after', e.clientX > r.left + r.width / 2); };
@@ -126,6 +128,62 @@ function refreshCard(s) {
   if (img) img.style.objectViewBox = cropView(s.crop);
   clear(el); append(el, s.type === 'title' ? [titleNode(s)] : s.type === 'map' ? thContent({ ...s, wm: null }) : [img || h('div.ph')]);
   const w = wmNode(s.wm); if (w) el.append(w);
+}
+
+/* ---------- Grossansicht im Editor (Doppelklick oder ⤢) ---------- */
+let viewer = null;
+function openViewer(id) {
+  closeViewer();
+  viewer = { id, url: null, el: h('div.lb') };
+  document.body.appendChild(viewer.el);
+  document.addEventListener('keydown', viewerKey, true);
+  renderViewer();
+}
+function closeViewer() {
+  if (!viewer) return;
+  if (viewer.url) URL.revokeObjectURL(viewer.url);
+  viewer.el.querySelectorAll('video').forEach((v) => v.pause());
+  viewer.el.remove(); viewer = null;
+  document.removeEventListener('keydown', viewerKey, true);
+}
+const visList = () => cur.show.slides.filter(visible);
+function viewerStep(d) {
+  const L = visList(); if (!L.length) return;
+  const i = L.findIndex((x) => x.id === viewer.id);
+  viewer.id = L[(i + d + L.length) % L.length].id;
+  selectOnly(viewer.id); markSel(); renderSide();
+  box()?.querySelector(`[data-id="${viewer.id}"]`)?.scrollIntoView({ block: 'nearest' });
+  renderViewer();
+}
+function viewerKey(e) {
+  if (!viewer || document.querySelector('.backdrop')) return;
+  if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeViewer(); }
+  else if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); viewerStep(1); }
+  else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); viewerStep(-1); }
+}
+async function renderViewer() {
+  const my = viewer; const s = cur.show.slides[idx(viewer.id)]; if (!s) return closeViewer();
+  const L = visList(); const n = L.findIndex((x) => x.id === s.id) + 1;
+  const name = s.type === 'title' ? t('titleSlide') : s.type === 'map' ? '🗺 ' + fsx.baseName(s.track || '') : fsx.baseName(s.path) + (s.page ? ' · ' + t('pageN', { p: s.page }) : '');
+  const stage = h('div.lb-stage.ed', h('div.loading', t('loading')));
+  clear(viewer.el).append(
+    h('div.lb-top', [h('b', `${idx(s.id) + 1} · ${name}`), s.type === 'file' ? h('span.dim', fsx.parentOf(s.path)) : null, h('span.sp'), h('span.dim.mono', `${n} / ${L.length}`), h('button.btn', { type: 'button', onclick: closeViewer }, t('closeEsc'))].filter(Boolean)),
+    stage,
+    h('div.lb-bot', h('div.lb-sub', h('span.note', t('viewerHint')))),
+    h('button.lb-nav.l', { type: 'button', onclick: () => viewerStep(-1) }, '‹'), h('button.lb-nav.r', { type: 'button', onclick: () => viewerStep(1) }, '›'),
+  );
+  if (viewer.url) { URL.revokeObjectURL(viewer.url); viewer.url = null; }
+  try {
+    // so wie auf dem Beamer: 16:9-Fläche mit Titel, Ausschnitt und Wasserzeichen
+    const frame = h('div.vframe');
+    if (s.type === 'title') frame.append(titleNode(s));
+    else if (s.type === 'map') { const tr = await loadTrack(s.track); frame.append(trackThumb(tr, 1280, 720, (s.map || MAP_DEFAULT).color)); }
+    else if (s.kind === 'video') { const f = await fileOf(s.path); viewer.url = URL.createObjectURL(f); frame.append(h('video', { src: viewer.url, controls: true, autoplay: true, muted: !s.sound })); }
+    else { const b = await imageBlob(s.path, s.page, s.kind); if (my !== viewer) return; viewer.url = URL.createObjectURL(b); const S = cur.show.settings; if (S.portraitBg !== false && S.fit !== 'cover') frame.append(h('div.pbg', h('img', { src: viewer.url, alt: '', style: { objectViewBox: cropView(s.crop) } }))); frame.append(h('img', { src: viewer.url, alt: '', style: { objectViewBox: cropView(s.crop), objectFit: S.fit || 'contain' } })); }
+    const w = wmNode(s.wm); if (w) frame.append(w);
+    if (s.cap && s.type === 'file') frame.append(h('div.vcap', s.cap));
+    if (my === viewer) stage.replaceChildren(frame);
+  } catch (e) { if (my === viewer) stage.replaceChildren(h('p.err', t('noPreview') + ': ' + (e?.message || e))); }
 }
 
 /* ---------- Qualitätshinweise und Filter ---------- */

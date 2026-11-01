@@ -1,5 +1,12 @@
 # Changelog — Diashow
 
+## 1.4.1 — 2026-11-01
+
+- «Diashow bearbeiten»: **Grossansicht** per Doppelklick auf eine Kachel oder Symbol ⤢ – zeigt das Dia wie
+  auf dem Beamer (16:9, Ausschnitt, Hochformat-Hintergrund, Wasserzeichen, Bildtext); ← → bzw. Bild↑/↓ blättern
+  (nur gefilterte Dias), Esc schliesst.
+- Knöpfe brechen nicht mehr um (z. B. «Ersetzen …»).
+
 ## 1.4.0 — 2026-11-01
 
 - **Kapitel:** Titelfolien gelten als Kapitel. In der Referentensicht stehen sie als Knöpfe (aktuelles Kapitel

@@ -5,7 +5,7 @@ const KEYS_HELP_DE = 'Klicker/Tastatur: <kbd>→</kbd> <kbd>Bild↓</kbd> weiter
 const KEYS_HELP_EN = 'Clicker/keyboard: <kbd>→</kbd> <kbd>PgDn</kbd> next · <kbd>←</kbd> <kbd>PgUp</kbd> back · <kbd>Space</kbd> auto on/off · <kbd>B</kbd>/<kbd>.</kbd> black screen · <kbd>Esc</kbd> end · click on the picture = next, right-click = back';
 
 const DE = {
-  ac_off: 'aus', ac_date: 'Datum', ac_datetime: 'Datum und Zeit', ac_place: 'Datum, Zeit und Ort (GPS)', autoCap: 'Bildtext aus Aufnahmedaten', addMap: '+ Karte', addMapTitle: 'Karten-Folie mit Trajektorie einfügen', chapters: 'Kapitel (Titelfolien)', key: 'Taste',
+  viewLarge: 'Gross ansehen (oder Doppelklick)', viewerHint: '← → blättern (auch Bild↑/Bild↓) · Esc = schliessen · Ansicht wie auf dem Beamer (Ausschnitt, Wasserzeichen, Bildtext)', ac_off: 'aus', ac_date: 'Datum', ac_datetime: 'Datum und Zeit', ac_place: 'Datum, Zeit und Ort (GPS)', autoCap: 'Bildtext aus Aufnahmedaten', addMap: '+ Karte', addMapTitle: 'Karten-Folie mit Trajektorie einfügen', chapters: 'Kapitel (Titelfolien)', key: 'Taste',
   cropBtn: 'Zuschneiden …', cropEdit: 'Ausschnitt ändern …', cropRemove: 'Ausschnitt entfernen', cropFree: 'frei', cropRatio: 'Format', cropReset: 'Ganzes Bild', cropTitle: 'Zuschneiden', cropHint: 'Rahmen verschieben oder an den Ecken ziehen. Das Original bleibt unverändert; nur der Ausschnitt wird in der Diashow gespeichert.',
   fMaps: 'Karten', lineColor: 'Linienfarbe', lineWidth: 'Linienbreite', mapAnim: 'Trajektorie während der Folie entstehen lassen', mapEditor: 'Karten-Folie', mapStyle: 'Karte', mapTitle: 'Titel auf der Karte', mapTitlePh: 'z. B. Gordon Bennett 2026 · Gladbeck → Finnland',
   mapHint: 'Kartenkacheln kommen aus dem Internet (OpenStreetMap, Esri, OpenTopoMap). Ohne Internet bleibt die Karte grau, die Trajektorie wird trotzdem gezeichnet – dann «schlicht» wählen. Standarddauer einer Karten-Folie: mindestens 12 s.',
@@ -85,7 +85,7 @@ const DE = {
 };
 
 const EN = {
-  ac_off: 'off', ac_date: 'date', ac_datetime: 'date and time', ac_place: 'date, time and place (GPS)', autoCap: 'Caption from capture data', addMap: '+ Map', addMapTitle: 'Insert map slide with trajectory', chapters: 'Chapters (title slides)', key: 'Key',
+  viewLarge: 'View large (or double-click)', viewerHint: '← → browse (also PgUp/PgDn) · Esc = close · View as on the projector (crop, watermark, caption)', ac_off: 'off', ac_date: 'date', ac_datetime: 'date and time', ac_place: 'date, time and place (GPS)', autoCap: 'Caption from capture data', addMap: '+ Map', addMapTitle: 'Insert map slide with trajectory', chapters: 'Chapters (title slides)', key: 'Key',
   cropBtn: 'Crop …', cropEdit: 'Change crop …', cropRemove: 'Remove crop', cropFree: 'free', cropRatio: 'Format', cropReset: 'Whole picture', cropTitle: 'Crop', cropHint: 'Move the frame or drag its corners. The original stays unchanged; only the crop is stored in the slideshow.',
   fMaps: 'maps', lineColor: 'Line colour', lineWidth: 'Line width', mapAnim: 'Draw the trajectory during the slide', mapEditor: 'Map slide', mapStyle: 'Map', mapTitle: 'Title on the map', mapTitlePh: 'e.g. Gordon Bennett 2026 · Gladbeck → Finland',
   mapHint: 'Map tiles come from the internet (OpenStreetMap, Esri, OpenTopoMap). Without internet the map stays grey but the trajectory is still drawn – choose «plain» then. Default duration of a map slide: at least 12 s.',
