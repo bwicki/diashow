@@ -89,14 +89,17 @@ werden nie verändert. Nach jedem Neustart von Chrome genügt ein Klick auf **Zu
 3. **Referentensicht öffnen** (Fenster auf dem Laptop), dann **Vorführung starten** (Vollbild auf dem
    Beamer). Der **Klicker-Test** zeigt, welche Taste der Klicker sendet. **Probelauf im Fenster** spielt
    alles schnell ohne Beamer ab.
-4. **Kapitel:** Titelfolien erscheinen in der Referentensicht als Kapitel-Knöpfe; Tasten 1–9 springen hin.
+4. **Kapitel:** Titelfolien erscheinen in der Referentensicht als Kapitel-Knöpfe A, B, C …; die gleichen
+   Buchstaben springen per Tastatur hin. Eine Dia-Nummer + Enter springt zu diesem Dia.
 
 | Taste / Klicker | Wirkung |
 |---|---|
 | → · Bild↓ · Enter · Klick aufs Bild | weiter |
 | ← · Bild↑ · Rechtsklick | zurück |
 | Leertaste | Auto an/aus (Pause) |
-| B · «.» | Schwarzbild |
+| «.» (bzw. B, falls eingestellt) | Schwarzbild |
+| Zahl + Enter (z. B. 134) | zu diesem Dia springen, von dort weiter |
+| A, B, C … | zur 1., 2., 3. Titelfolie (Kapitel) |
 | Esc | beenden |
 | F5 (Vorführen-Ansicht) | starten |
 

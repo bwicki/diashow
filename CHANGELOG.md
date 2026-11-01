@@ -1,5 +1,16 @@
 # Changelog — Diashow
 
+## 1.5.0 — 2026-11-01
+
+- **Springen während der Vorführung:** Dia-Nummer eintippen (z. B. 134) und Enter – oder kurz warten – springt zu
+  diesem Dia; die Vorführung läuft von dort weiter. Die eingegebene Nummer erscheint in der Referentensicht
+  (ohne Referentensicht dezent unten links auf dem Beamer).
+- **Kapitel per Buchstabe:** A, B, C … springen zur 1., 2., 3. Titelfolie (ersetzt die Tasten 1–9).
+  Kapitel-Knöpfe in der Referentensicht mit Buchstaben.
+- Schwarzbild jetzt mit «.» (PowerPoint-Konvention). Sendet die Schwarzbild-Taste des Klickers «b», lässt sich
+  in «Vorführen» einstellen: «Taste B = Schwarzbild». Die Buchstaben N, P, K, W sind nicht mehr belegt.
+- Referentensicht zeigt die Dia-Nummer aus «Diashow bearbeiten» (auch bei zufälliger Reihenfolge).
+
 ## 1.4.2 — 2026-11-01
 
 - Filter in «Diashow bearbeiten»: **Hochformat** und **Querformat** (berücksichtigt einen Ausschnitt).

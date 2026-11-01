@@ -1,11 +1,11 @@
 /* Diashow — Oberflächentexte DE/EN. t('key', {vars}) liefert den Text der
  * aktiven Sprache; fehlt ein Schlüssel, erscheint er selbst (fällt im Test auf).
  */
-const KEYS_HELP_DE = 'Klicker/Tastatur: <kbd>→</kbd> <kbd>Bild↓</kbd> weiter · <kbd>←</kbd> <kbd>Bild↑</kbd> zurück · <kbd>Leertaste</kbd> Auto an/aus · <kbd>B</kbd>/<kbd>.</kbd> Schwarzbild · <kbd>Esc</kbd> beenden · Klick auf das Bild = weiter, Rechtsklick = zurück';
-const KEYS_HELP_EN = 'Clicker/keyboard: <kbd>→</kbd> <kbd>PgDn</kbd> next · <kbd>←</kbd> <kbd>PgUp</kbd> back · <kbd>Space</kbd> auto on/off · <kbd>B</kbd>/<kbd>.</kbd> black screen · <kbd>Esc</kbd> end · click on the picture = next, right-click = back';
+const KEYS_HELP_DE = 'Klicker/Tastatur: <kbd>→</kbd> <kbd>Bild↓</kbd> weiter · <kbd>←</kbd> <kbd>Bild↑</kbd> zurück · <kbd>Leertaste</kbd> Auto an/aus · <kbd>.</kbd> Schwarzbild · <kbd>Esc</kbd> beenden · Nummer + <kbd>Enter</kbd> = zu diesem Dia · <kbd>A</kbd> <kbd>B</kbd> <kbd>C</kbd> … = zur 1./2./3. Titelfolie · Klick aufs Bild = weiter, Rechtsklick = zurück';
+const KEYS_HELP_EN = 'Clicker/keyboard: <kbd>→</kbd> <kbd>PgDn</kbd> next · <kbd>←</kbd> <kbd>PgUp</kbd> back · <kbd>Space</kbd> auto on/off · <kbd>.</kbd> black screen · <kbd>Esc</kbd> end · number + <kbd>Enter</kbd> = go to that slide · <kbd>A</kbd> <kbd>B</kbd> <kbd>C</kbd> … = 1st/2nd/3rd title slide · click on the picture = next, right-click = back';
 
 const DE = {
-  viewLarge: 'Gross ansehen (oder Doppelklick)', fPortrait: 'Hochformat', fLandscape: 'Querformat', beamerAs: 'wie Beamer', viewerHint: '← → blättern (auch Bild↑/Bild↓) · Esc = schliessen · Ansicht wie auf dem Beamer (Ausschnitt, Wasserzeichen, Bildtext)', ac_off: 'aus', ac_date: 'Datum', ac_datetime: 'Datum und Zeit', ac_place: 'Datum, Zeit und Ort (GPS)', autoCap: 'Bildtext aus Aufnahmedaten', addMap: '+ Karte', addMapTitle: 'Karten-Folie mit Trajektorie einfügen', chapters: 'Kapitel (Titelfolien)', key: 'Taste',
+  viewLarge: 'Gross ansehen (oder Doppelklick)', jumpTo: 'Springe zu Dia {n} … (Enter)', jumpNone: 'Dia {n} gibt es in dieser Vorführung nicht.', chapterNone: 'Kein Kapitel {c}.', bBlack: 'Taste B = Schwarzbild (statt Kapitel B) – einschalten, wenn die Schwarzbild-Taste des Klickers im Test «b» zeigt', fPortrait: 'Hochformat', fLandscape: 'Querformat', beamerAs: 'wie Beamer', viewerHint: '← → blättern (auch Bild↑/Bild↓) · Esc = schliessen · Ansicht wie auf dem Beamer (Ausschnitt, Wasserzeichen, Bildtext)', ac_off: 'aus', ac_date: 'Datum', ac_datetime: 'Datum und Zeit', ac_place: 'Datum, Zeit und Ort (GPS)', autoCap: 'Bildtext aus Aufnahmedaten', addMap: '+ Karte', addMapTitle: 'Karten-Folie mit Trajektorie einfügen', chapters: 'Kapitel (Titelfolien) – Tasten A, B, C …', key: 'Taste',
   cropBtn: 'Zuschneiden …', cropEdit: 'Ausschnitt ändern …', cropRemove: 'Ausschnitt entfernen', cropFree: 'frei', cropRatio: 'Format', cropReset: 'Ganzes Bild', cropTitle: 'Zuschneiden', cropHint: 'Rahmen verschieben oder an den Ecken ziehen. Das Original bleibt unverändert; nur der Ausschnitt wird in der Diashow gespeichert.',
   fMaps: 'Karten', lineColor: 'Linienfarbe', lineWidth: 'Linienbreite', mapAnim: 'Trajektorie während der Folie entstehen lassen', mapEditor: 'Karten-Folie', mapStyle: 'Karte', mapTitle: 'Titel auf der Karte', mapTitlePh: 'z. B. Gordon Bennett 2026 · Gladbeck → Finnland',
   mapHint: 'Kartenkacheln kommen aus dem Internet (OpenStreetMap, Esri, OpenTopoMap). Ohne Internet bleibt die Karte grau, die Trajektorie wird trotzdem gezeichnet – dann «schlicht» wählen. Standarddauer einer Karten-Folie: mindestens 12 s.',
@@ -77,7 +77,7 @@ const DE = {
   startTitle: 'Start', openRef: 'Referentensicht öffnen', startShow: 'Vorführung starten',
   startHint: 'Empfohlen: zuerst <b>Referentensicht öffnen</b>, dann <b>Vorführung starten</b>. Musik: Spotify einfach separat laufen lassen. <kbd>F5</kbd> (auch Start-Taste am Klicker) startet hier ebenfalls.',
   keyTest: 'Klicker-Test', keyTestHint: 'Taste am Klicker drücken …', keysHelp: KEYS_HELP_DE,
-  act_next: 'weiter', act_prev: 'zurück', act_pause: 'Auto an/aus', act_black: 'Schwarzbild', act_first: 'erstes Dia', act_last: 'letztes Dia', act_start: 'Start', act_end: 'Ende',
+  act_next: 'weiter', act_prev: 'zurück', act_pause: 'Auto an/aus', act_black: 'Schwarzbild', act_first: 'erstes Dia', act_chapter: 'Kapitel', act_last: 'letztes Dia', act_start: 'Start', act_end: 'Ende',
   fsFail: 'Vollbild nicht möglich:', refBlocked: 'Die Referentensicht konnte nicht geöffnet werden (Popup blockiert?). In Chrome Popups für diese Seite erlauben oder die Referentensicht vor dem Start öffnen.',
   refTitle: 'Referentensicht', refIdle: 'Bereit. Im Hauptfenster «Vorführung starten» klicken.',
   next: 'Als Nächstes', elapsed: 'Laufzeit', slideRemain: 'Dia noch', clock: 'Uhrzeit', blackBtn: 'Schwarz', endBtn: 'Beenden', video: 'Video',
@@ -85,7 +85,7 @@ const DE = {
 };
 
 const EN = {
-  viewLarge: 'View large (or double-click)', fPortrait: 'portrait', fLandscape: 'landscape', beamerAs: 'as projector', viewerHint: '← → browse (also PgUp/PgDn) · Esc = close · View as on the projector (crop, watermark, caption)', ac_off: 'off', ac_date: 'date', ac_datetime: 'date and time', ac_place: 'date, time and place (GPS)', autoCap: 'Caption from capture data', addMap: '+ Map', addMapTitle: 'Insert map slide with trajectory', chapters: 'Chapters (title slides)', key: 'Key',
+  viewLarge: 'View large (or double-click)', jumpTo: 'Go to slide {n} … (Enter)', jumpNone: 'Slide {n} is not in this presentation.', chapterNone: 'No chapter {c}.', bBlack: 'Key B = black screen (instead of chapter B) – turn on if the clicker blank key shows «b» in the test', fPortrait: 'portrait', fLandscape: 'landscape', beamerAs: 'as projector', viewerHint: '← → browse (also PgUp/PgDn) · Esc = close · View as on the projector (crop, watermark, caption)', ac_off: 'off', ac_date: 'date', ac_datetime: 'date and time', ac_place: 'date, time and place (GPS)', autoCap: 'Caption from capture data', addMap: '+ Map', addMapTitle: 'Insert map slide with trajectory', chapters: 'Chapters (title slides) – keys A, B, C …', key: 'Key',
   cropBtn: 'Crop …', cropEdit: 'Change crop …', cropRemove: 'Remove crop', cropFree: 'free', cropRatio: 'Format', cropReset: 'Whole picture', cropTitle: 'Crop', cropHint: 'Move the frame or drag its corners. The original stays unchanged; only the crop is stored in the slideshow.',
   fMaps: 'maps', lineColor: 'Line colour', lineWidth: 'Line width', mapAnim: 'Draw the trajectory during the slide', mapEditor: 'Map slide', mapStyle: 'Map', mapTitle: 'Title on the map', mapTitlePh: 'e.g. Gordon Bennett 2026 · Gladbeck → Finland',
   mapHint: 'Map tiles come from the internet (OpenStreetMap, Esri, OpenTopoMap). Without internet the map stays grey but the trajectory is still drawn – choose «plain» then. Default duration of a map slide: at least 12 s.',
@@ -151,7 +151,7 @@ const EN = {
   startTitle: 'Start', openRef: 'Open presenter view', startShow: 'Start presentation',
   startHint: 'Recommended: first <b>open presenter view</b>, then <b>start presentation</b>. Music: simply run Spotify separately. <kbd>F5</kbd> (also the clicker start key) starts here too.',
   keyTest: 'Clicker test', keyTestHint: 'Press a clicker key …', keysHelp: KEYS_HELP_EN,
-  act_next: 'next', act_prev: 'back', act_pause: 'auto on/off', act_black: 'black screen', act_first: 'first slide', act_last: 'last slide', act_start: 'start', act_end: 'end',
+  act_next: 'next', act_prev: 'back', act_pause: 'auto on/off', act_black: 'black screen', act_first: 'first slide', act_chapter: 'chapter', act_last: 'last slide', act_start: 'start', act_end: 'end',
   fsFail: 'Full screen not possible:', refBlocked: 'The presenter view could not be opened (popup blocked?). Allow popups for this site in Chrome or open the presenter view before starting.',
   refTitle: 'Presenter view', refIdle: 'Ready. Click «Start presentation» in the main window.',
   next: 'Up next', elapsed: 'Elapsed', slideRemain: 'Slide left', clock: 'Time', blackBtn: 'Black', endBtn: 'End', video: 'Video',

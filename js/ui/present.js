@@ -121,6 +121,7 @@ export async function renderPresent(el) {
         h('div.row-actions', [refBtn, startBtn, testBtn]),
         h('p.note', { html: t('startHint') }),
         h('div.keytest', [h('span.lbl', t('keyTest')), h('span#keyTest.mono', lastKey || t('keyTestHint'))]),
+        h('label.check', h('input', { type: 'checkbox', checked: bIsBlack(), onchange: (e) => save('diashow.bBlack', e.target.checked) }), t('bBlack')),
         h('p.note', { html: t('keysHelp') }),
       ]),
     ]),
@@ -316,30 +317,79 @@ function preload(i) {
 }
 
 /* =================================================================== Tasten / Klicker */
+/* Buchstaben a, b, c … springen zu den Titelfolien (Kapitel); Zahlen + Enter springen zum Dia mit dieser
+   Nummer. Schwarzbild deshalb über «.» (PowerPoint-Konvention); sendet der Klicker «b», lässt sich das in der
+   Vorführen-Ansicht umstellen (dann ist «b» Schwarzbild statt Kapitel B). */
 const KEYS = {
-  next: ['ArrowRight', 'PageDown', 'ArrowDown', 'Enter', 'n', 'N'],
-  prev: ['ArrowLeft', 'PageUp', 'ArrowUp', 'Backspace', 'p', 'P'],
-  pause: [' ', 'k', 'K'],
-  black: ['b', 'B', '.', 'w', 'W'],
+  next: ['ArrowRight', 'PageDown', 'ArrowDown', 'Enter'],
+  prev: ['ArrowLeft', 'PageUp', 'ArrowUp', 'Backspace'],
+  pause: [' '],
+  black: ['.', ','],
   first: ['Home'], last: ['End'],
 };
+const bIsBlack = () => load('diashow.bBlack', false);
 const actionOf = (k) => Object.keys(KEYS).find((a) => KEYS[a].includes(k));
 function onKey(e) {
   if (!run) return;
   if (e.key === 'F5' || (e.key === 'F5' && e.shiftKey)) { e.preventDefault(); return; }   // Logitech «Start»: kein Neuladen
   if (e.key === 'Escape') { e.preventDefault(); end(); return; }
-  if (/^[1-9]$/.test(e.key) && run.chapters.length) { const c = run.chapters[+e.key - 1]; if (c != null) { e.preventDefault(); goTo(c, c >= run.i ? 1 : -1); } return; }
+  if (e.ctrlKey || e.altKey || e.metaKey) return;
+  // Zahl eintippen → Dia-Nummer; Enter springt (oder automatisch nach kurzer Pause)
+  if (/^[0-9]$/.test(e.key)) { e.preventDefault(); numInput(e.key); return; }
+  if (run.num) {
+    if (e.key === 'Enter') { e.preventDefault(); jumpNum(); return; }
+    if (e.key === 'Backspace') { e.preventDefault(); run.num = run.num.slice(0, -1); showNum(); return; }
+  }
+  if ((e.key === 'b' || e.key === 'B') && bIsBlack()) { e.preventDefault(); toggleBlack(); return; }
+  if (/^[a-zA-Z]$/.test(e.key)) { e.preventDefault(); jumpChapter(e.key.toLowerCase().charCodeAt(0) - 97); return; }
   const a = actionOf(e.key); if (!a) return;
   e.preventDefault(); e.stopPropagation();
   if (a === 'next') next(); else if (a === 'prev') prev(); else if (a === 'pause') togglePause(); else if (a === 'black') toggleBlack();
   else if (a === 'first') goTo(0, -1); else if (a === 'last') goTo(run.list.length - 1, 1);
 }
+/* ---------- Springen: Dia-Nummer und Kapitel ---------- */
+function numInput(d) {
+  run.num = (run.num || '') + d; showNum();
+  clearTimeout(run.numT); run.numT = setTimeout(jumpNum, 1800);
+}
+function showNum() {
+  if (!run) return;
+  const txt = run.num ? t('jumpTo', { n: run.num }) : '';
+  const ref = refWin && !refWin.closed ? refWin.document.getElementById('rJump') : null;
+  if (ref) ref.textContent = txt;
+  // ohne Referentensicht dezent auch auf dem Beamer
+  let hud = $('jumpHud');
+  if (!ref) { if (!hud) { hud = h('div#jumpHud.jumphud'); $('stage').append(hud); } hud.textContent = txt; hud.hidden = !txt; }
+  else if (hud) hud.hidden = true;
+}
+function jumpNum() {
+  if (!run?.num) return;
+  clearTimeout(run.numT);
+  const n = parseInt(run.num, 10); run.num = ''; showNum();
+  const s = cur.show.slides[n - 1];
+  const i = s ? run.list.findIndex((x) => x.s === s) : -1;
+  if (i < 0) { flashRef(t('jumpNone', { n })); return; }
+  goTo(i, i >= run.i ? 1 : -1);
+}
+function jumpChapter(k) {
+  const c = run.chapters[k];
+  if (c == null) { flashRef(t('chapterNone', { c: String.fromCharCode(97 + k).toUpperCase() })); return; }
+  goTo(c, c >= run.i ? 1 : -1);
+}
+function flashRef(text) {
+  const ref = refWin && !refWin.closed ? refWin.document.getElementById('rJump') : null;
+  if (ref) { ref.textContent = text; setTimeout(() => { if (ref.textContent === text) ref.textContent = ''; }, 2500); }
+}
+const chapLetter = (k) => String.fromCharCode(65 + k);
+const idxOrig = (it) => (it ? cur.show.slides.indexOf(it.s) + 1 : 0);
+
 // Klicker-Test und F5-Start in der Vorführen-Ansicht (ohne laufende Diashow)
 document.addEventListener('keydown', (e) => {
   if (run || !root?.classList.contains('on') || document.querySelector('.backdrop')) return;
   if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
   const a = actionOf(e.key);
-  lastKey = `${e.key === ' ' ? 'Leertaste' : e.key}${e.shiftKey ? ' (+Shift)' : ''} → ${a ? t('act_' + a) : (e.key === 'F5' ? t('act_start') : e.key === 'Escape' ? t('act_end') : '–')}`;
+  const lab = a ? t('act_' + a) : (e.key === 'F5' ? t('act_start') : e.key === 'Escape' ? t('act_end') : (/^[bB]$/.test(e.key) && bIsBlack()) ? t('act_black') : /^[a-zA-Z]$/.test(e.key) ? t('act_chapter') + ' ' + e.key.toUpperCase() : /^[0-9]$/.test(e.key) ? t('slide') + ' ' + e.key + ' …' : '–');
+  lastKey = `${e.key === ' ' ? 'Leertaste' : e.key}${e.shiftKey ? ' (+Shift)' : ''} → ${lab}`;
   const kt = $('keyTest'); if (kt) kt.textContent = lastKey;
   if (e.key === 'F5') { e.preventDefault(); start(); }
   else if (a) e.preventDefault();
@@ -376,7 +426,8 @@ function renderRef() {
       h('div.ref-lbl', t('next')), h('div.ref-box.small#rNext'),
       h('div.ref-clock', [h('div', h('b#rEl', '00:00'), h('span', t('elapsed'))), h('div', h('b#rRem', '–'), h('span', t('slideRemain'))), h('div', h('b#rNow', '--:--'), h('span', t('clock')))]),
       run.chapters.length ? h('div.ref-lbl', t('chapters')) : null,
-      run.chapters.length ? h('div.ref-chap', run.chapters.map((ci, k) => h('button.btn.mini' + '.chap', { type: 'button', dataset: { ci }, onclick: () => goTo(ci, ci >= run.i ? 1 : -1), title: (k < 9 ? t('key') + ' ' + (k + 1) : '') }, (k < 9 ? (k + 1) + ' · ' : '') + ((run.list[ci].s.cap || '').split('\n')[0].slice(0, 28) || t('titleSlide'))))) : null,
+      run.chapters.length ? h('div.ref-chap', run.chapters.map((ci, k) => h('button.btn.mini' + '.chap', { type: 'button', dataset: { ci }, onclick: () => goTo(ci, ci >= run.i ? 1 : -1), title: k < 26 ? t('key') + ' ' + chapLetter(k) : '' }, (k < 26 ? chapLetter(k) + ' · ' : '') + ((run.list[ci].s.cap || '').split('\n')[0].slice(0, 28) || t('titleSlide'))))) : null,
+      h('div.ref-jump#rJump'),
       h('div.ref-lbl', t('note')), h('div.ref-note#rNote'),
       h('div.ref-ctl', [
         h('button.btn', { type: 'button', onclick: () => prev() }, '◀'),
@@ -417,7 +468,7 @@ function updRef(full) {
   else if (it && run.auto && !run.paused) { const sec = slideSeconds(it); if (sec) rem = mmss(sec + run.S.trDur - (now - run.slideT0) / 1000); }
   g('rRem').textContent = run.paused ? t('paused') : (run.auto ? rem : t('manual'));
   if (!full) return;
-  g('rLbl').textContent = run.ended ? t('endOfShow') : `${t('nowOnBeamer')} · ${run.i + 1} / ${run.list.length}` + (run.black ? ' · ' + t('blackActive') : '');
+  g('rLbl').textContent = run.ended ? t('endOfShow') : `${t('nowOnBeamer')} · ${t('slide')} ${idxOrig(it)} · ${run.i + 1} / ${run.list.length}` + (run.black ? ' · ' + t('blackActive') : '');
   g('rCur').replaceChildren(run.ended ? h('div.ref-empty', t('endOfShow')) : refImg(it));
   g('rNext').replaceChildren(refImg(nx));
   g('rNote').textContent = it?.s.note || '–';
@@ -430,7 +481,7 @@ function updRef(full) {
     refStripFor = run.list;
     clear(strip);
     run.list.forEach((x, i) => {
-      const c = h('button.rs', { type: 'button', title: `${i + 1}`, onclick: () => goTo(i, i >= run.i ? 1 : -1) }, h('span', String(i + 1)));
+      const c = h('button.rs', { type: 'button', title: `${idxOrig(x)}`, onclick: () => goTo(i, i >= run.i ? 1 : -1) }, h('span', String(idxOrig(x))));
       if (x.type === 'title') c.prepend(h('div.rs-t', titleNode(x.s)));
       else if (x.type === 'map') loadTrack(x.s.track).then((tr) => c.prepend(trackThumb(tr, 160, 90))).catch(() => {});
       else thumb(x.s.path, x.s.page).then((r) => c.prepend(h('img', { src: r.url, alt: '' }))).catch(() => {});
