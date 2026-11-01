@@ -1,5 +1,12 @@
 # Changelog — Diashow
 
+## 1.4.2 — 2026-11-01
+
+- Filter in «Diashow bearbeiten»: **Hochformat** und **Querformat** (berücksichtigt einen Ausschnitt).
+- Grossansicht im Editor im Seitenverhältnis der eingestellten Beamer-Auflösung (Menü ≡).
+- Bildtext weicht dem Wasserzeichen aus (automatischer Bildtext nach links, wenn das Logo unten rechts steht;
+  eigener Bildtext höher, wenn das Logo unten Mitte steht).
+
 ## 1.4.1 — 2026-11-01
 
 - «Diashow bearbeiten»: **Grossansicht** per Doppelklick auf eine Kachel oder Symbol ⤢ – zeigt das Dia wie

@@ -5,7 +5,7 @@
 import { t } from '../i18n.js';
 import { $, h, clear, append, msg, dialog, mmss, load, save } from '../util.js';
 import * as fsx from '../fsx.js';
-import { thumb, dateOf, fileOf, forget, kindOf, qualityFlags, hamming, imageBlob } from '../media.js';
+import { thumb, dateOf, fileOf, forget, kindOf, qualityFlags, hamming, imageBlob, QUALITY } from '../media.js';
 import { cur, changed, onChange, addTitle, addMap, TRANSITIONS, DEF_WM } from '../show.js';
 import { titleNode, wmNode, styleWm, tstyle, PRESETS, WM_DEFAULT, BUILTIN, cropView } from '../render.js';
 import { loadTrack, trackThumb, MAP_DEFAULT } from '../track.js';
@@ -41,7 +41,7 @@ function renderBar() {
     h('button.btn', { type: 'button', onclick: sortByDate }, t('sortDate')),
     h('button.btn', { type: 'button', onclick: () => go('lib') }, t('addImages')),
     h('label.ctl', t('show'), h('select#edFilter', { onchange: (e) => { filter = e.target.value; save('diashow.ed.filter', filter); applyFilter(); } },
-      [['all', t('fAll')], ['flagged', t('fFlagged')], ['lowres', '▦ ' + t('qL1')], ['blur', '◌ ' + t('qL2')], ['dup', '⧉ ' + t('qL3')], ['img', t('fJpgPng')], ['heic', 'HEIC'], ['raw', 'RAW'], ['pdf', 'PDF'], ['video', t('fVideoOnly')], ['title', t('fTitles')], ['map', t('fMaps')], ['nowm', t('fNoWm')]]
+      [['all', t('fAll')], ['flagged', t('fFlagged')], ['lowres', '▦ ' + t('qL1')], ['blur', '◌ ' + t('qL2')], ['dup', '⧉ ' + t('qL3')], ['portrait', t('fPortrait')], ['landscape', t('fLandscape')], ['img', t('fJpgPng')], ['heic', 'HEIC'], ['raw', 'RAW'], ['pdf', 'PDF'], ['video', t('fVideoOnly')], ['title', t('fTitles')], ['map', t('fMaps')], ['nowm', t('fNoWm')]]
         .map(([v, l]) => h('option', { value: v, selected: v === filter }, l)))),
     h('span.note#edCount'),
     h('label.ctl', t('size'), h('input', { type: 'range', min: 90, max: 420, value: cardSize, oninput: (e) => { cardSize = +e.target.value; box()?.style.setProperty('--sw', cardSize + 'px'); }, onchange: () => save('diashow.ed.size', cardSize) })),
@@ -167,7 +167,7 @@ async function renderViewer() {
   const name = s.type === 'title' ? t('titleSlide') : s.type === 'map' ? '🗺 ' + fsx.baseName(s.track || '') : fsx.baseName(s.path) + (s.page ? ' · ' + t('pageN', { p: s.page }) : '');
   const stage = h('div.lb-stage.ed', h('div.loading', t('loading')));
   clear(viewer.el).append(
-    h('div.lb-top', [h('b', `${idx(s.id) + 1} · ${name}`), s.type === 'file' ? h('span.dim', fsx.parentOf(s.path)) : null, h('span.sp'), h('span.dim.mono', `${n} / ${L.length}`), h('button.btn', { type: 'button', onclick: closeViewer }, t('closeEsc'))].filter(Boolean)),
+    h('div.lb-top', [h('b', `${idx(s.id) + 1} · ${name}`), s.type === 'file' ? h('span.dim', fsx.parentOf(s.path)) : null, h('span.sp'), h('span.dim.mono', `${t('beamerAs')} ${QUALITY.res.replace('x', '×')} · ${n} / ${L.length}`), h('button.btn', { type: 'button', onclick: closeViewer }, t('closeEsc'))].filter(Boolean)),
     stage,
     h('div.lb-bot', h('div.lb-sub', h('span.note', t('viewerHint')))),
     h('button.lb-nav.l', { type: 'button', onclick: () => viewerStep(-1) }, '‹'), h('button.lb-nav.r', { type: 'button', onclick: () => viewerStep(1) }, '›'),
@@ -175,7 +175,8 @@ async function renderViewer() {
   if (viewer.url) { URL.revokeObjectURL(viewer.url); viewer.url = null; }
   try {
     // so wie auf dem Beamer: 16:9-Fläche mit Titel, Ausschnitt und Wasserzeichen
-    const frame = h('div.vframe');
+    const [BW, BH] = QUALITY.res.split('x').map(Number);
+    const frame = h('div.vframe'); frame.style.setProperty('--ar', `${BW} / ${BH}`); frame.style.setProperty('--arn', String(BW / BH));
     if (s.type === 'title') frame.append(titleNode(s));
     else if (s.type === 'map') { const tr = await loadTrack(s.track); frame.append(trackThumb(tr, 1280, 720, (s.map || MAP_DEFAULT).color)); }
     else if (s.kind === 'video') { const f = await fileOf(s.path); viewer.url = URL.createObjectURL(f); frame.append(h('video', { src: viewer.url, controls: true, autoplay: true, muted: !s.sound })); }
@@ -190,7 +191,7 @@ async function renderViewer() {
 const qkey = (s) => s.path + '#' + (s.page || 0);
 const isPhoto = (s) => s.kind === 'image' || s.kind === 'heic' || s.kind === 'raw';
 function noteQ(s, r) {
-  if (!isPhoto(s)) return;
+  if (!isPhoto(s)) { if (r?.w) edQ.set(qkey(s), { flags: {}, w: r.w, h: r.h }); applyFilter(); return; }
   edQ.set(qkey(s), { flags: qualityFlags(r), hash: r.hash, size: r.size, w: r.w, h: r.h, sharp: r.sharp });
   paintQ(); applyFilter();
 }
@@ -204,6 +205,12 @@ function dupsOf(s) {
     if (qkey(o) === qkey(s) || hamming(p.hash, q.hash) <= 4 || (p.size === q.size && hamming(p.hash, q.hash) <= 10)) out.push(o);
   }
   return out;
+}
+/** Ausrichtung nach Ausschnitt: 'portrait' | 'landscape' | '' (unbekannt). */
+function orientOf(s) {
+  const q = edQ.get(qkey(s)); if (!q?.w) return '';
+  const c = s.crop || { w: 1, h: 1 };
+  return q.h * c.h > q.w * c.w ? 'portrait' : 'landscape';
 }
 function flagsOf(s) {
   const q = edQ.get(qkey(s)); if (!q) return {};
@@ -234,6 +241,8 @@ function visible(s) {
     case 'img': return s.kind === 'image';
     case 'title': return s.type === 'title';
     case 'map': return s.type === 'map';
+    case 'portrait': return orientOf(s) === 'portrait';
+    case 'landscape': return orientOf(s) === 'landscape';
     case 'nowm': return s.type === 'file' && !s.wm?.path;
     default: return s.kind === filter;
   }

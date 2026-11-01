@@ -252,7 +252,13 @@ function makeLayer(it) {
     L.append(v);
   }
   const capText = s.cap || s._auto;
-  if (S.captions && capText && it.type !== 'title' && it.type !== 'map') L.append(h('div.cap' + (s.cap ? '' : '.auto'), capText));
+  if (S.captions && capText && it.type !== 'title' && it.type !== 'map') {
+    // Bildtext nie unter das Wasserzeichen legen
+    const wp = s.wm?.path ? (s.wm.pos || 'br') : '';
+    const c = h('div.cap' + (s.cap ? '' : '.auto') + (!s.cap && wp === 'br' ? '.left' : ''), capText);
+    if (s.cap && wp === 'bc') c.style.bottom = `calc(5% + ${(s.wm.size || 12) + 5}cqh)`;
+    L.append(c);
+  }
   const w = wmNode(s.wm); if (w) L.append(w);
   return L;
 }

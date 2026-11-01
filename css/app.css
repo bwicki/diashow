@@ -314,10 +314,11 @@ input[type=range]{accent-color:var(--amber);}
 
 /* Grossansicht im Editor: 16:9-Fläche wie auf dem Beamer */
 .lb-stage.ed{display:block;}
-.vframe{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(calc(100% - 170px),calc((100vh - 190px) * 16 / 9));aspect-ratio:16/9;background:#000;container-type:size;overflow:hidden;border-radius:4px;}
+.vframe{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(calc(100% - 170px),calc((100vh - 190px) * var(--arn,1.7778)));aspect-ratio:var(--ar,16/9);background:#000;container-type:size;overflow:hidden;border-radius:4px;}
 .vframe > img,.vframe > video,.vframe > canvas,.vframe .pbg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;}
 .vcap{position:absolute;left:4%;right:4%;bottom:5%;text-align:center;color:#fff;font-size:4.5cqh;font-weight:600;text-shadow:0 2px 14px rgba(0,0,0,.9);}
 .sl .zoom{position:absolute;right:6px;top:28px;width:26px;height:26px;border-radius:6px;border:1px solid rgba(255,255,255,.7);background:rgba(0,0,0,.55);color:#fff;font-size:15px;line-height:1;cursor:zoom-in;opacity:0;transition:opacity .15s;}
 .sl:hover .zoom{opacity:1;}
 .vframe .pbg{position:absolute;inset:0;overflow:hidden;}
 .vframe .pbg img{width:100%;height:100%;object-fit:cover;filter:blur(3.5cqh) brightness(.5);transform:scale(1.12);}
+.stage .cap.auto.left{right:auto;left:3%;text-align:left;}
