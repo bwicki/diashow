@@ -35,6 +35,7 @@ const urls = new Map();
 export function assetUrl(path) {
   if (!path) return Promise.resolve('');
   if (path.startsWith('app:')) return Promise.resolve(new URL(path.slice(4), location.href).href);
+  if (/^(https?:|blob:|data:)/.test(path)) return Promise.resolve(path);   // geteilte Diashow: Dateien vom Server
   if (!urls.has(path)) {
     const p = imageBlob(path).then((b) => URL.createObjectURL(b));
     urls.set(path, p); p.catch(() => urls.delete(path));

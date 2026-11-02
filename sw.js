@@ -11,7 +11,7 @@ const SHELL = [
   './', 'index.html', 'presenter.html', 'manifest.webmanifest', 'css/base.css', 'css/app.css', 'img/wicki-logo.png',
   'icons/favicon.svg', 'icons/favicon.ico', 'icons/apple-touch-icon.png', 'icons/icon-192.png', 'icons/icon-512.png',
   'js/version.js', 'js/i18n.js', 'js/util.js', 'js/fsx.js', 'js/media.js', 'js/show.js', 'js/app.js',
-  'js/render.js', 'js/track.js', 'js/geo.js', 'js/ui/library.js', 'js/ui/editor.js', 'js/ui/present.js', 'js/ui/picker.js', 'js/ui/crop.js',
+  'js/render.js', 'js/track.js', 'js/geo.js', 'js/ui/share.js', 'js/ui/library.js', 'js/ui/editor.js', 'js/ui/present.js', 'js/ui/picker.js', 'js/ui/crop.js',
   'js/vendor/heic2any.min.js', 'js/vendor/pdf.min.js', 'js/vendor/pdf.worker.min.js', 'js/vendor/exifr.umd.js', 'js/vendor/leaflet/leaflet.js', 'js/vendor/leaflet/leaflet.css',
 ];
 

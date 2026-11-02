@@ -1,0 +1,20 @@
+# Diashow — Cloudflare Worker «diashow-api» (geteilte Diashows: R2 + D1)
+# Deploy: GitHub Action «Deploy worker» (.github/workflows/deploy-worker.yml).
+# Keine Worker-Secrets: Upload-Schlüssel (nur SHA-256) und Token-Geheimnis liegen in D1, Tabelle config.
+name = "diashow-api"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+workers_dev = true
+
+[vars]
+ALLOWED_ORIGINS = "https://diashow.wicki.aero,https://bwicki.github.io,http://localhost:8765,http://127.0.0.1:8765"
+APP_VERSION = "1.6.0"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "diashow"
+database_id = "4a9812ec-6c7a-45a5-a35c-8eed858b9b3e"
+
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "diashow-share"

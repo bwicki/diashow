@@ -1,5 +1,18 @@
 # Changelog — Diashow
 
+## 1.6.0 — 2026-11-02
+
+- **Phase 2: Diashow über einen Link teilen** (≡ → «Diashow teilen (Link) …»). Jeder Link hat sein eigenes
+  Passwort, kein Ablaufdatum. Bilder werden im Browser aufbereitet (Ausschnitt, höchstens 2560 px,
+  **Logo eingebrannt**, ohne EXIF/GPS) und hochgeladen; Videos unverändert (Logo als Überlagerung); Titel- und
+  Karten-Folien als Daten. Notizen bleiben privat. Erneutes Teilen unter demselben Link lädt nur Geändertes hoch.
+- Betrachter `diashow.wicki.aero/s/<id>`: Passwort, Abspielen mit denselben Übergängen, Tasten/Wischen,
+  Vollbild, kein Download-Knopf, kein Kontextmenü, `noindex`.
+- **Aufrufstatistik im Menü ≡**: Aufrufe je geteilter Diashow direkt im Menü; «Geteilte Diashows & Statistik …»
+  mit Aufrufen, «bis zum Ende», letztem Aufruf, Aufrufen je Tag; Link kopieren, Passwort ändern, löschen.
+  Gezählt wird jede erfolgreiche Öffnung (Neu laden im selben Tab zählt nicht doppelt); keine IP-Adressen.
+- Server: Cloudflare Worker `diashow-api` (R2 `diashow-share`, D1 `diashow`), Deploy per GitHub Action.
+
 ## 1.5.1 — 2026-11-01
 
 - **Referentensicht auf nur einem Bildschirm:** Klickte man in die Referentensicht, verlor das Beamer-Fenster das

@@ -88,7 +88,7 @@ const TILES = {
 /** Karte in ein Element zeichnen; animSec > 0 lässt die Trajektorie über diese Zeit entstehen. Liefert {stop}. */
 export async function mountMap(el, s, animSec) {
   const L = await leaflet();
-  const tr = await loadTrack(s.track);
+  const tr = s.pts ? { pts: s.pts.map(([lat, lon]) => ({ lat, lon })) } : await loadTrack(s.track);   // geteilt: Punkte im Manifest
   const o = { ...MAP_DEFAULT, ...(s.map || {}) };
   const div = h('div.mapbox'); el.prepend(div);
   const map = L.map(div, { zoomControl: false, attributionControl: true, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, touchZoom: false, fadeAnimation: false });

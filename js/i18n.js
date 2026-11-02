@@ -158,6 +158,44 @@ const EN = {
   soundOn: 'Sound on', soundOff: 'Sound off', paused: 'Paused', nowOnBeamer: 'Now on the projector', blackActive: 'BLACK SCREEN', endOfShow: 'End of slideshow',
 };
 
+/* Phase 2: Teilen über Link */
+Object.assign(DE, {
+  shMenuShare: 'Diashow teilen (Link) …', shMenuManage: 'Geteilte Diashows & Statistik …', shMenuLoading: 'Aufrufe werden geladen …', shMenuNoKey: 'Aufrufzahlen erscheinen hier nach dem ersten Teilen.',
+  shViewsHead: 'Aufrufe geteilter Diashows', shMore: '… und {n} weitere', shNone: 'Noch keine Diashow geteilt.',
+  shKeyTitle: 'Upload-Schlüssel', shKeyText: 'Einmalig den Upload-Schlüssel eingeben (beginnt mit «ds-»). Er bleibt in diesem Browser gespeichert und berechtigt zum Hochladen, Ändern und Löschen geteilter Diashows.', shKeyBad: 'Upload-Schlüssel ungültig.', shNoKey: 'Kein Upload-Schlüssel.', shForgetKey: 'Upload-Schlüssel in diesem Browser vergessen', shKeyForgot: 'Upload-Schlüssel entfernt.',
+  shTitle: 'Diashow teilen', shTarget: 'Link', shNewLink: 'Neuer Link', shName: 'Titel (sieht der Betrachter)', shPw: 'Passwort', shPwPh: 'mindestens 4 Zeichen', shPwNew: 'Neues Passwort',
+  shPwHint: 'Jeder Link hat sein eigenes Passwort. Ohne Ablaufdatum; löschen oder Passwort ändern unter ≡ → Geteilte Diashows.',
+  shWhat: '{n} Dias werden aufbereitet und hochgeladen: Bilder mit Ausschnitt, höchstens 2560 px, <b>Logo eingebrannt</b>, ohne Aufnahme- und GPS-Daten. {v} Videos gehen unverändert hoch (Logo als Überlagerung). Titel- und Karten-Folien gehen als Daten mit. Notizen der Referentensicht bleiben privat. Bei einem bestehenden Link werden nur geänderte Dias neu hochgeladen.',
+  shStart: 'Hochladen', shNoTitle: 'Titel fehlt.', shPwShort: 'Passwort zu kurz (mindestens 4 Zeichen).',
+  shPreparing: 'Verbinde …', shKeepOpen: 'Dieses Fenster offen lassen, bis der Upload fertig ist.', shCancelling: 'Wird abgebrochen …', shCancelled: 'Teilen abgebrochen – der Link zeigt weiterhin den letzten vollständigen Stand.',
+  shProg: 'Dia {i} von {n} · {u} Dateien hochgeladen · {mb}', shPublishing: 'Wird freigegeben …', shDone: 'Geteilt: {n} Dias, {u} Dateien neu hochgeladen, zusammen {mb}, {s} s.', shFail: 'Teilen fehlgeschlagen:',
+  shReady: 'Link bereit', shReadyText: 'Diesen Link und das Passwort weitergeben. Der Betrachter sieht die Diashow im Browser – ohne Download-Knopf.', shSomeErr: '{n} Dias konnten nicht aufbereitet werden (siehe Protokoll) und fehlen.',
+  shPwKept: 'Das Passwort bleibt unverändert.', shCopyAll: 'Titel, Link und Passwort kopieren', shOpen: 'Link öffnen', shCopied: 'In die Zwischenablage kopiert.',
+  shManage: 'Geteilte Diashows', shTotal: '{n} geteilte Diashows · zusammen {v} Aufrufe', shViews: 'Aufrufe', shCompleted: 'bis zum Ende', shLast: 'Letzter Aufruf', shIncomplete: 'Upload unvollständig',
+  shCopyLink: 'Link kopieren', shStats: 'Statistik', shChangePw: 'Passwort ändern', shDelete: 'Löschen', shDay: 'Tag', shNoViews: 'Noch keine Aufrufe.',
+  shStatsSum: '{v} Aufrufe, davon {c} bis zum Ende angeschaut. Letzter Aufruf: {l}.',
+  shStatsHint: 'Ein Aufruf = das Passwort wurde richtig eingegeben und die Diashow geöffnet. Neu laden im selben Browser-Tab zählt nicht doppelt. «Bis zum Ende» = das letzte Dia wurde erreicht. Es werden keine IP-Adressen oder Namen gespeichert.',
+  shPwChanged: 'Passwort für «{n}» geändert.', shDelText: '«{n}» ({v} Aufrufe) löschen? Der Link funktioniert danach nicht mehr; alle hochgeladenen Dateien werden entfernt. Deine Originale bleiben unberührt.', shDeleted: '«{n}» gelöscht.',
+});
+Object.assign(EN, {
+  shMenuShare: 'Share slideshow (link) …', shMenuManage: 'Shared slideshows & statistics …', shMenuLoading: 'Loading view counts …', shMenuNoKey: 'View counts appear here after the first share.',
+  shViewsHead: 'Views of shared slideshows', shMore: '… and {n} more', shNone: 'No slideshow shared yet.',
+  shKeyTitle: 'Upload key', shKeyText: 'Enter the upload key once (starts with «ds-»). It stays stored in this browser and allows uploading, changing and deleting shared slideshows.', shKeyBad: 'Upload key invalid.', shNoKey: 'No upload key.', shForgetKey: 'Forget upload key in this browser', shKeyForgot: 'Upload key removed.',
+  shTitle: 'Share slideshow', shTarget: 'Link', shNewLink: 'New link', shName: 'Title (shown to viewers)', shPw: 'Password', shPwPh: 'at least 4 characters', shPwNew: 'New password',
+  shPwHint: 'Each link has its own password. No expiry; delete or change the password under ≡ → Shared slideshows.',
+  shWhat: '{n} slides are prepared and uploaded: pictures cropped, at most 2560 px, <b>logo burned in</b>, without capture and GPS data. {v} videos are uploaded unchanged (logo as overlay). Title and map slides are sent as data. Presenter notes stay private. For an existing link only changed slides are uploaded again.',
+  shStart: 'Upload', shNoTitle: 'Title missing.', shPwShort: 'Password too short (at least 4 characters).',
+  shPreparing: 'Connecting …', shKeepOpen: 'Keep this window open until the upload has finished.', shCancelling: 'Cancelling …', shCancelled: 'Sharing cancelled – the link still shows the last complete version.',
+  shProg: 'Slide {i} of {n} · {u} files uploaded · {mb}', shPublishing: 'Publishing …', shDone: 'Shared: {n} slides, {u} files newly uploaded, {mb} in total, {s} s.', shFail: 'Sharing failed:',
+  shReady: 'Link ready', shReadyText: 'Pass on this link and the password. Viewers see the slideshow in the browser – without a download button.', shSomeErr: '{n} slides could not be prepared (see log) and are missing.',
+  shPwKept: 'The password stays unchanged.', shCopyAll: 'Copy title, link and password', shOpen: 'Open link', shCopied: 'Copied to the clipboard.',
+  shManage: 'Shared slideshows', shTotal: '{n} shared slideshows · {v} views in total', shViews: 'Views', shCompleted: 'to the end', shLast: 'Last view', shIncomplete: 'upload incomplete',
+  shCopyLink: 'Copy link', shStats: 'Statistics', shChangePw: 'Change password', shDelete: 'Delete', shDay: 'Day', shNoViews: 'No views yet.',
+  shStatsSum: '{v} views, {c} of them watched to the end. Last view: {l}.',
+  shStatsHint: 'A view = the correct password was entered and the slideshow opened. Reloading in the same browser tab does not count twice. «To the end» = the last slide was reached. No IP addresses or names are stored.',
+  shPwChanged: 'Password for «{n}» changed.', shDelText: 'Delete «{n}» ({v} views)? The link stops working; all uploaded files are removed. Your originals stay untouched.', shDeleted: '«{n}» deleted.',
+});
+
 let cur = (() => { try { return JSON.parse(localStorage.getItem('diashow.lang')) || 'de'; } catch { return 'de'; } })();
 export const lang = () => cur;
 export function setLang(l) { cur = l === 'en' ? 'en' : 'de'; try { localStorage.setItem('diashow.lang', JSON.stringify(cur)); } catch { /* egal */ } document.documentElement.lang = cur; }

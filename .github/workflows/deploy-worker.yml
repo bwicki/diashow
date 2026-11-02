@@ -1,0 +1,36 @@
+# Deployt den Worker «diashow-api» bei jeder Änderung unter worker/ (oder von Hand: Actions → Deploy worker → Run workflow).
+# Benötigt die Repository-Secrets CLOUDFLARE_API_TOKEN und CLOUDFLARE_ACCOUNT_ID (dieselben Werte wie in bwicki/ops).
+name: Deploy worker
+on:
+  push:
+    branches: [main]
+    paths: ['worker/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Voraussetzungen prüfen
+        env:
+          T: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          A: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          [ -n "$T" ] || { echo "::error::Secret CLOUDFLARE_API_TOKEN fehlt (Settings → Secrets and variables → Actions)"; exit 1; }
+          [ -n "$A" ] || { echo "::error::Secret CLOUDFLARE_ACCOUNT_ID fehlt"; exit 1; }
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: worker
+          command: deploy
+      - name: Gesundheitsprüfung
+        run: |
+          sleep 5
+          curl -fsS https://diashow-api.balthasar.workers.dev/api/health

@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Diashow</title>
+<script>
+// Kurzlink diashow.wicki.aero/s/<id> → Betrachter (GitHub Pages kennt keine Umleitungen)
+var m = location.pathname.match(/^\/s\/([a-z0-9]{6,20})\/?$/);
+location.replace(m ? '/share.html#' + m[1] : '/');
+</script></head><body></body></html>

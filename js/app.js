@@ -8,6 +8,7 @@ import { QUALITY, BEAMERS, setBeamer } from './media.js';
 import { renderLibrary } from './ui/library.js';
 import { renderEditor } from './ui/editor.js';
 import { renderPresent, isRunning } from './ui/present.js';
+import { shareDialog, manageDialog, quickList } from './ui/share.js';
 
 const VIEWS = ['lib', 'ed', 'play'];
 let view = load('diashow.view', 'lib');
@@ -38,9 +39,15 @@ function renderHeader() {
 function renderMenu() {
   const m = clear($('menu'));
   const item = (label, fn) => h('button', { type: 'button', onclick: () => { m.classList.add('hidden'); fn(); } }, label);
+  // Geteilte Diashows: Aufrufe direkt im Menü (wird nachgeladen, sobald ein Upload-Schlüssel hinterlegt ist)
+  const stats = h('div.menustats', h('div.note', t('shMenuLoading')));
   m.append(
     item(t('saveAs'), () => saveShow(true)),
     item(t('changeRoot'), changeRoot),
+    h('div.sep'),
+    item(t('shMenuShare'), shareDialog),
+    item(t('shMenuManage'), manageDialog),
+    stats,
     h('div.sep'),
     item(lang() === 'de' ? 'English' : 'Deutsch', () => { setLang(lang() === 'de' ? 'en' : 'de'); renderAll(); }),
     item(t('theme'), () => { const th = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = th; save('diashow.theme', th); }),
@@ -49,6 +56,16 @@ function renderMenu() {
     h('div.sep'),
     item(t('about'), about),
   );
+  quickList().then((list) => {
+    if (!list) { stats.replaceChildren(h('div.note', t('shMenuNoKey'))); return; }
+    const total = list.reduce((a, x) => a + (x.views || 0), 0);
+    stats.replaceChildren(
+      h('div.ms-head', [h('span', t('shViewsHead')), h('b', String(total))]),
+      ...list.slice(0, 6).map((x) => h('button.ms-row', { type: 'button', title: x.last_view ? t('shLast') + ': ' + fmtDateTime(x.last_view) : '', onclick: () => { m.classList.add('hidden'); manageDialog(); } }, [h('span', x.title), h('b', String(x.views || 0))])),
+      ...(list.length > 6 ? [h('div.note', t('shMore', { n: list.length - 6 }))] : []),
+      ...(!list.length ? [h('div.note', t('shNone'))] : []),
+    );
+  });
 }
 $('menuBtn').onclick = (e) => { e.stopPropagation(); toggleLog(false); renderMenu(); $('menu').classList.toggle('hidden'); };
 document.addEventListener('click', (e) => { if (!$('menu').contains(e.target)) $('menu').classList.add('hidden'); });

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Diashow</title>
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/share.css">
+</head>
+<body class="sharebody">
+<div class="stage" id="stage"><div class="black" id="blackOv"></div></div>
+<div class="sv-gate" id="gate">
+  <div class="sv-card">
+    <img class="sv-logo" src="img/wicki-logo.png" alt="">
+    <h1 id="gTitle">Diashow</h1>
+    <form id="gForm" autocomplete="off">
+      <label class="lbl" for="gPw" id="gLbl">Passwort</label>
+      <input id="gPw" type="password" autocomplete="current-password" required>
+      <button class="btn primary big" id="gBtn" type="submit">▶ Ansehen</button>
+      <p class="err" id="gErr" hidden></p>
+    </form>
+    <p class="note" id="gNote"></p>
+  </div>
+</div>
+<div class="sv-bar" id="bar" hidden>
+  <button type="button" class="sv-b" id="bPrev" aria-label="zurück">◀</button>
+  <button type="button" class="sv-b" id="bPlay" aria-label="Pause">⏸</button>
+  <button type="button" class="sv-b" id="bNext" aria-label="weiter">▶</button>
+  <span class="sv-pos" id="bPos"></span>
+  <span class="sv-title" id="bTitle"></span>
+  <button type="button" class="sv-b" id="bSound" aria-label="Ton" hidden>🔇</button>
+  <button type="button" class="sv-b" id="bFs" aria-label="Vollbild">⛶</button>
+</div>
+<script type="module" src="js/viewer.js"></script>
+</body>
+</html>

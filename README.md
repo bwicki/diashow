@@ -12,8 +12,8 @@ Management API von Chrome. Gestaltung, Tokens und Bedienidiom aus GaforCast/ops.
 > Läuft in **Google Chrome** (oder Microsoft Edge) auf Windows/Mac. Firefox und Safari können
 > nicht direkt auf lokale Ordner zugreifen.
 
-Stand: Version 1.0.0 (Phase 1, lokal). Phase 2 (Teilen per Link mit Passwort) siehe Konzept im
-Projektordner `05_3D-Prints\042 WebAPP diashow`.
+Stand: Version 1.6.0. Phase 1 (lokal vorführen) und Phase 2 (Teilen per Link mit Passwort, siehe unten).
+Konzept im Projektordner `05_3D-Prints\042 WebAPP diashow`.
 
 ---
 
@@ -151,3 +151,41 @@ Release: Version in `js/version.js`, Eintrag in `CHANGELOG.md`.
 ## Lizenz
 
 Source-available, siehe `LICENSE`. © 2026 Balthasar Wicki, Wicki Aero GmbH.
+
+---
+
+## Teilen über Link (Phase 2)
+
+**≡ → Diashow teilen (Link) …** bereitet jedes Dia im Browser auf und lädt es hoch:
+
+| Dia | Was hochgeladen wird |
+|---|---|
+| Bild, HEIC, RAW, PDF-Seite | JPEG, Ausschnitt angewendet, längste Seite ≤ 2560 px, **Logo eingebrannt**, ohne EXIF/GPS |
+| Video | Originaldatei (grosse Dateien in Teilen à 20 MB); Logo legt der Betrachter darüber |
+| Titelfolie | als Daten; Logo/Hintergrundbild als Datei |
+| Karte | als Daten (Trajektorie, höchstens 1500 Punkte) |
+
+Notizen der Referentensicht werden nicht mitgegeben. Jeder Link hat ein eigenes Passwort und läuft nie ab.
+Erneutes Teilen unter demselben Link lädt nur geänderte Dias hoch und entfernt Dateien, die nicht mehr
+gebraucht werden.
+
+Link: `https://diashow.wicki.aero/s/<id>` (→ `share.html#<id>`). Der Betrachter sieht Titel und Passwortfeld,
+danach die Diashow mit denselben Übergängen; Tasten ← → Leertaste F, Wischen auf dem Handy. Kein
+Download-Knopf und kein Kontextmenü – wer will, kann trotzdem ein Bildschirmfoto machen; ein echter
+Kopierschutz ist im Browser nicht möglich.
+
+**Statistik:** Im Menü ≡ stehen die Aufrufe je geteilter Diashow. **Geteilte Diashows & Statistik …** zeigt
+Aufrufe, «bis zum Ende», letzten Aufruf und Aufrufe je Tag; dort auch Link kopieren, Passwort ändern, löschen.
+Ein Aufruf = richtiges Passwort und Diashow geöffnet; neu laden im selben Tab zählt nicht doppelt.
+
+**Upload-Schlüssel:** wird einmal pro Browser abgefragt (beginnt mit `ds-`). Er steht nur als SHA-256 in der
+Datenbank (D1 `diashow`, Tabelle `config`, Zeile `admin_hash`). Neuer Schlüssel: Zufallswert erzeugen, dessen
+SHA-256 (hex) dort eintragen.
+
+### Server
+
+Cloudflare Worker `diashow-api` (`worker/`), R2-Bucket `diashow-share`, D1-Datenbank `diashow`
+(Schema `worker/schema.sql`). Adresse `https://diashow-api.balthasar.workers.dev`. Deploy per GitHub Action
+**Deploy worker** bei jeder Änderung unter `worker/`; sie braucht die Repository-Secrets
+`CLOUDFLARE_API_TOKEN` und `CLOUDFLARE_ACCOUNT_ID` (gleiche Werte wie in `bwicki/ops`).
+
