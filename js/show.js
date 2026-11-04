@@ -6,6 +6,7 @@
 import { uid, load, save } from './util.js';
 import { kindOf } from './media.js';
 import { PRESETS } from './render.js';
+import { migrateCap } from './caption.js';
 
 /** Standard-Wasserzeichen für neu hinzugefügte Dias (Wunsch 31.10.2026): Wicki-Logo oben rechts. */
 export const DEF_WM = { path: 'app:img/wicki-logo.png', pos: 'tr', size: 10, op: 0.85 };
@@ -13,7 +14,7 @@ export const DEF_WM = { path: 'app:img/wicki-logo.png', pos: 'tr', size: 10, op:
 export const TRANSITIONS = ['fade', 'slide', 'zoom', 'wipe', 'cube', 'black', 'circle'];
 
 export function defaultSettings() {
-  return { mode: 'auto', dur: 6, trDur: 1.0, order: 'fixed', loop: true, kenburns: true, captions: true, pool: [...TRANSITIONS], fit: 'contain', defWm: true, autoCap: 'off', portraitBg: true };
+  return { mode: 'auto', dur: 6, trDur: 1.0, order: 'fixed', loop: true, kenburns: true, captions: true, pool: [...TRANSITIONS], fit: 'contain', defWm: true, autoCap: 'off', capFields: { place: true, date: true, time: true }, capNoGps: 'show', capPos: 'br', portraitBg: true };
 }
 export function newShow(name = '') {
   return { app: 'diashow', format: 1, name, created: new Date().toISOString(), modified: null, settings: defaultSettings(), slides: [] };
@@ -21,7 +22,7 @@ export function newShow(name = '') {
 
 /** Aktueller Arbeitsstand (eine Diashow), mit Beobachtern und Entwurfs-Sicherung. */
 export const cur = { show: load('diashow.draft', null) || newShow(), dirty: load('diashow.dirty', false), file: load('diashow.file', null), mtime: load('diashow.mtime', 0) };
-cur.show.settings = { ...defaultSettings(), ...(cur.show.settings || {}) };
+cur.show.settings = migrateCap({ ...defaultSettings(), ...(cur.show.settings || {}) });
 const subs = new Set();
 export const onChange = (fn) => { subs.add(fn); return () => subs.delete(fn); };
 let saveTimer = null;
@@ -63,7 +64,7 @@ export function addMap(at, track, cap = '') {
 }
 export function setShow(obj, file, mtime = 0) {
   const s = { ...newShow(), ...obj };
-  s.settings = { ...defaultSettings(), ...(obj.settings || {}) };
+  s.settings = migrateCap({ ...defaultSettings(), ...(obj.settings || {}) });
   s.slides = (obj.slides || []).map((x) => ({ id: x.id || uid(), cap: '', note: '', dur: null, tr: '', sound: false, ...x, kind: x.type === 'file' ? kindOf(x.path) : undefined }));
   cur.show = s; cur.file = file || null; cur.mtime = mtime; cur.dirty = false;
   changed(false);

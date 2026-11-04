@@ -12,6 +12,7 @@ import { loadTrack, trackThumb, MAP_DEFAULT } from '../track.js';
 import { cropDialog } from './crop.js';
 import { pickImage, chooseTrack } from './picker.js';
 import { go } from '../app.js';
+import { capCfg, autoText, capCorner, capRegion, measureTone, capNode, CAP_POS } from '../caption.js';
 
 let root = null; let selId = null; let dragId = null; let anchor = null;
 let cardSize = load('diashow.ed.size', 200);
@@ -182,7 +183,17 @@ async function renderViewer() {
     else if (s.kind === 'video') { const f = await fileOf(s.path); viewer.url = URL.createObjectURL(f); frame.append(h('video', { src: viewer.url, controls: true, autoplay: true, muted: !s.sound })); }
     else { const b = await imageBlob(s.path, s.page, s.kind); if (my !== viewer) return; viewer.url = URL.createObjectURL(b); const S = cur.show.settings; if (S.portraitBg !== false && S.fit !== 'cover') frame.append(h('div.pbg', h('img', { src: viewer.url, alt: '', style: { objectViewBox: cropView(s.crop) } }))); frame.append(h('img', { src: viewer.url, alt: '', style: { objectViewBox: cropView(s.crop), objectFit: S.fit || 'contain' } })); }
     const w = wmNode(s.wm); if (w) frame.append(w);
-    if (s.cap && s.type === 'file') frame.append(h('div.vcap', s.cap));
+    if (s.type === 'file' && cur.show.settings.captions) {
+      const S = cur.show.settings; const auto = !s.cap;
+      const text = s.cap || await autoText(s.path, S).catch(() => '');
+      if (text && my === viewer) {
+        const corner = capCorner(S, s);
+        let tone = s.capTone && s.capTone !== 'auto' ? s.capTone : 'light';
+        const im = frame.querySelector(':scope > img');
+        if (im && tone === 'light' && !s.capTone) { try { await im.decode(); tone = measureTone(im, { crop: s.crop, fit: S.fit, portraitBg: S.portraitBg !== false, ar: frame.style.getPropertyValue('--arn') ? +frame.style.getPropertyValue('--arn') : 16 / 9, region: capRegion(auto, corner) }); } catch { /* hell */ } }
+        frame.append(capNode(text, { auto, corner, tone, liftForWm: !auto && s.wm?.path && s.wm.pos === 'bc' ? (s.wm.size || 12) : 0 }));
+      }
+    }
     if (my === viewer) stage.replaceChildren(frame);
   } catch (e) { if (my === viewer) stage.replaceChildren(h('p.err', t('noPreview') + ': ' + (e?.message || e))); }
 }
@@ -308,6 +319,7 @@ function renderSingle(side, s) {
   else if (s.type === 'map') renderMapEditor(side, s, upd);
   else append(side, [
     field(t('caption'), h('input', { type: 'text', value: s.cap || '', placeholder: t('captionPh'), oninput: (e) => { s.cap = e.target.value; changed(true, 'meta'); }, onchange: renderSlides })),
+    field(t('capTone'), seg(s.capTone || 'auto', [['auto', t('capToneAuto')], ['light', t('capToneLight')], ['dark', t('capToneDark')]], (v) => { if (v === 'auto') delete s.capTone; else s.capTone = v; changed(true, 'meta'); })),
   ]);
   append(side, [
     field(t('note'), h('textarea', { rows: 2, value: s.note || '', placeholder: t('notePh'), oninput: (e) => { s.note = e.target.value; changed(true, 'meta'); } })),
@@ -497,7 +509,7 @@ function renderWhole(side) {
     chk(t('loop'), S.loop, (v) => { S.loop = v; }),
     chk(t('kenburns'), S.kenburns, (v) => { S.kenburns = v; }),
     chk(t('captions'), S.captions, (v) => { S.captions = v; }),
-    row(t('autoCap'), sel([['off', t('ac_off')], ['date', t('ac_date')], ['datetime', t('ac_datetime')], ['datetimeplace', t('ac_place')]], S.autoCap || 'off', (v) => { S.autoCap = v; changed(true, 'meta'); })),
+    ...capSettings(S),
     chk(t('portraitBg'), S.portraitBg !== false, (v) => { S.portraitBg = v; }),
     chk(t('defWm', { l: logoLabel((S.wmDefault || DEF_WM).path) }), S.defWm, (v) => { S.defWm = v; }),
     h('div.lbl.mt', t('pool')),
@@ -505,6 +517,24 @@ function renderWhole(side) {
     h('p.note', t('poolHint')),
     h('p.note', t('totalTime', { t: mmss(totalSeconds()) })),
   ]);
+}
+/** Bildtext aus Aufnahmedaten: ein/aus, Felder, Dias ohne GPS, Ecke. */
+function capSettings(S) {
+  const c = capCfg(S);
+  const setF = (k, v) => { S.capFields = { ...c.fields, [k]: v }; c.fields[k] = v; };
+  const out = [chk(t('autoCap'), c.on, (v) => { S.autoCap = v ? 'on' : 'off'; if (!S.capFields) S.capFields = { ...c.fields }; renderSide(); })];
+  if (!c.on) return out;
+  out.push(
+    h('div.capfields', [
+      h('label.check', h('input', { type: 'checkbox', checked: c.fields.place, onchange: (e) => { setF('place', e.target.checked); changed(true, 'meta'); } }), t('capPlace')),
+      h('label.check', h('input', { type: 'checkbox', checked: c.fields.date, onchange: (e) => { setF('date', e.target.checked); changed(true, 'meta'); } }), t('capDate')),
+      h('label.check', h('input', { type: 'checkbox', checked: c.fields.time, onchange: (e) => { setF('time', e.target.checked); changed(true, 'meta'); } }), t('capTime')),
+    ]),
+    row(t('capNoGps'), seg(c.noGps, [['show', t('capNoGpsShow')], ['hide', t('capNoGpsHide')]], (v) => { S.capNoGps = v; changed(true, 'meta'); })),
+    row(t('capPos'), seg(c.pos, CAP_POS.map((p) => [p, t('pos_' + p)]), (v) => { S.capPos = v; changed(true, 'meta'); })),
+    h('p.note', t('capHint')),
+  );
+  return out;
 }
 function totalSeconds() {
   const S = cur.show.settings;

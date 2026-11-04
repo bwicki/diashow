@@ -7,6 +7,7 @@
 import { h } from './util.js';
 import { titleNode, wmNode } from './render.js';
 import { mountMap } from './track.js';
+import { capNode } from './caption.js';
 import { APP } from './version.js';
 
 const API = (() => { try { return JSON.parse(localStorage.getItem('diashow.api')) || APP.api; } catch { return APP.api; } })();
@@ -158,10 +159,9 @@ function makeLayer(it) {
     v.onerror = () => { L.append(h('div.sv-err', T.notPlay)); if (!run.paused) { clearTimeout(run.timer); run.timer = setTimeout(() => { if (curItem() === it) next(); }, 3000); } };
     L.append(v);
   }
-  const capText = s.cap;
-  if (S.captions && capText && it.type !== 'title' && it.type !== 'map') {
-    const wp = it.type === 'video' && s.wm?.path ? (s.wm.pos || 'br') : '';
-    L.append(h('div.cap' + (s.auto ? '.auto' : '') + (s.auto && wp === 'br' ? '.left' : ''), capText));
+  if (S.captions && s.cap && it.type !== 'title' && it.type !== 'map') {
+    // Ecke und Schriftfarbe hat die App beim Teilen bestimmt (ältere Links: unten rechts, hell)
+    L.append(capNode(s.cap, { auto: !!s.auto, corner: s.corner || 'br', tone: s.tone || 'light', liftForWm: 0 }));
   }
   if (it.type !== 'image') { const w = wmNode(s.wm); if (w) L.append(w); }   // Bilder: Logo bereits eingebrannt
   return L;

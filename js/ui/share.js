@@ -13,7 +13,7 @@ import { cur } from '../show.js';
 import { imageBlob, fileOf, extOf, kindOf } from '../media.js';
 import { assetUrl, tstyle, WM_DEFAULT } from '../render.js';
 import { loadTrack } from '../track.js';
-import { autoCaption } from '../geo.js';
+import { autoText, capCorner, capRegion, measureTone } from '../caption.js';
 import { APP } from '../version.js';
 
 const MAXPX = 2560;
@@ -97,7 +97,7 @@ async function renderImage(blob, crop, wm) {
   ctx.drawImage(bmp, sx, sy, sw, sh, 0, 0, W, H);
   bmp.close?.();
   if (wm?.path) await burnWm(ctx, W, H, wm);
-  return { blob: await toJpeg(cv), w: W, h: H };
+  return { blob: await toJpeg(cv), w: W, h: H, canvas: cv };
 }
 
 /* ---------- Hochladen ---------- */
@@ -160,26 +160,35 @@ async function prepareSlide(s, ctx) {
   }
   const kind = s.kind || kindOf(s.path);
   let cap = s.cap || ''; let auto = false;
-  if (!cap && (S.autoCap || 'off') !== 'off') { try { cap = await autoCaption(s.path, S.autoCap); auto = !!cap; } catch { /* ohne */ } }
+  if (!cap) { try { cap = await autoText(s.path, S); auto = !!cap; } catch { /* ohne */ } }
+  const corner = capCorner(S, s);
+  const fixedTone = s.capTone && s.capTone !== 'auto' ? s.capTone : '';
+  const toneOpts = (crop) => ({ crop, fit: S.fit, portraitBg: S.portraitBg !== false, ar: 16 / 9, region: capRegion(auto, corner) });
   if (kind === 'video') {
     const f = await fileOf(s.path);
     const ext = extOf(s.path); const ct = VIDEO_CT[ext] || f.type || 'video/mp4';
     const name = `v-${await sha([RENDER_V, s.path, f.size, f.lastModified].join('|'))}.${ext === 'mov' ? 'mov' : ext}`;
     await once(ctx, name, () => putFile(ctx.id, name, f, ct, ctx.bytes));
-    return { t: 'video', ...base, file: name, cap, auto: auto || undefined, sound: !!s.sound, crop: s.crop, wm: await wmData(s.wm) };
+    return { t: 'video', ...base, file: name, cap, auto: auto || undefined, corner: auto ? corner : undefined, tone: fixedTone || undefined, sound: !!s.sound, crop: s.crop, wm: await wmData(s.wm) };
   }
   // Bild (auch HEIC, RAW, PDF-Seite)
   const f = await fileOf(s.path);
   const key = await sha([RENDER_V, s.path, s.page || 0, f.size, f.lastModified, JSON.stringify(s.crop || null), JSON.stringify(s.wm || null)].join('|'));
   const name = `i-${key}.jpg`;
   let w = ctx.dims.get(name)?.w, hh = ctx.dims.get(name)?.h;
+  let tone = fixedTone;
   await once(ctx, name, async () => {
     const r = await renderImage(await imageBlob(s.path, s.page, kind), s.crop, s.wm);
     await putFile(ctx.id, name, r.blob, 'image/jpeg', ctx.bytes);
     ctx.dims.set(name, { w: r.w, h: r.h });
+    if (cap && !fixedTone) ctx.tones.set(name + '|' + auto + corner, measureTone(r.canvas, toneOpts(null)));
   });
   w = ctx.dims.get(name)?.w; hh = ctx.dims.get(name)?.h;
-  return { t: 'img', ...base, file: name, w, h: hh, pdf: kind === 'pdf' || undefined, cap, auto: auto || undefined };
+  if (cap && !tone) {
+    tone = ctx.tones.get(name + '|' + auto + corner);
+    if (!tone) { try { const bmp = await createImageBitmap(await imageBlob(s.path, s.page, kind)); tone = measureTone(bmp, toneOpts(s.crop)); bmp.close?.(); } catch { tone = 'light'; } }
+  }
+  return { t: 'img', ...base, file: name, w, h: hh, pdf: kind === 'pdf' || undefined, cap, auto: auto || undefined, corner: auto ? corner : undefined, tone: cap ? tone : undefined };
 }
 
 /* ---------- Teilen-Dialog ---------- */
@@ -227,7 +236,7 @@ async function runShare(existing, title, password) {
     const links = load('diashow.shareFor', {}); links[cur.file || cur.show.name] = id; save('diashow.shareFor', links);
     const ctx = { id, have: new Set(have.map((x) => x.name)), used: new Set(), uploaded: 0, sent: 0, dims: new Map((prevMan?.slides || []).filter((x) => x.file).map((x) => [x.file, { w: x.w, h: x.h }])) };
     ctx.bytes = (n) => { ctx.sent += n; };
-    ctx.log = []; ctx.pending = new Map();
+    ctx.log = []; ctx.pending = new Map(); ctx.tones = new Map();
     const slides = cur.show.slides; const out = new Array(slides.length); let done = 0; const errs = [];
     const lim = limiter(3);
     await Promise.all(slides.map((s, i) => lim(async () => {

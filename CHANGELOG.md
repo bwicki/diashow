@@ -1,5 +1,18 @@
 # Changelog — Diashow
 
+## 1.7.0 — 2026-11-04
+
+- **Bildtext aus Aufnahmedaten neu:** Ort, Datum und Zeit einzeln wählbar (z. B. «DE-Gladbeck · 29.08.2026 · 08:16»);
+  «Dias ohne GPS»: Datum/Zeit trotzdem zeigen oder nichts; Ecke wählbar (oben/unten, links/rechts). Steht das Logo in
+  derselben Ecke, weicht der Text zur anderen Seite aus.
+- Datum und Zeit **nur noch aus EXIF** – kein Ersatz mehr aus Dateiname oder Dateidatum (war bei WhatsApp- und
+  Dropbox-Kopien oft falsch).
+- **Schriftfarbe nach Helligkeit:** Die App misst die Fläche hinter dem Text (mit Ausschnitt und Hochformat-Hintergrund);
+  auf hellem Grund dunkle Schrift mit hellem Schein, sonst weisse Schrift mit Schatten. Gilt auch für eigene Bildtexte.
+  Pro Dia übersteuerbar: «Farbe des Bildtexts» automatisch / hell / dunkel.
+- Grossansicht im Editor zeigt den Bildtext wie auf dem Beamer; geteilte Links übernehmen Ecke und Farbe.
+- Bestehende Diashows: die alte Einstellung (Datum / Datum und Zeit / mit Ort) wird übernommen.
+
 ## 1.6.0 — 2026-11-02
 
 - **Phase 2: Diashow über einen Link teilen** (≡ → «Diashow teilen (Link) …»). Jeder Link hat sein eigenes

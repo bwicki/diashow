@@ -13,7 +13,7 @@ import { imageBlob, fileOf, probeVideo, thumb } from '../media.js';
 import { cur, slideKey, TRANSITIONS } from '../show.js';
 import { titleNode, wmNode, assetPaths, preloadAsset, cropView } from '../render.js';
 import { mountMap, loadTrack, trackThumb } from '../track.js';
-import { autoCaption } from '../geo.js';
+import { autoText, capSig, capCorner, capRegion, measureTone, capNode } from '../caption.js';
 
 const prep = new Map();          // slideKey -> {ok, type, url, duration, err}
 let prepSig = ''; let preparing = null;
@@ -24,7 +24,7 @@ export const isRunning = () => !!run;
 
 /* =================================================================== Vorbereitung */
 function items() { return cur.show.slides; }
-function signature() { return (cur.show.settings.autoCap || 'off') + '\n' + items().map((s) => (s.type === 'title' ? 't' : s.type === 'map' ? 'm|' + s.track : slideKey(s.path, s.page)) + '|' + assetPaths(s).join('|')).join('\n'); }
+function signature() { return capSig(cur.show.settings) + '\n' + items().map((s) => (s.type === 'title' ? 't' : s.type === 'map' ? 'm|' + s.track : slideKey(s.path, s.page) + (s.cap ? '|c' : '')) + '|' + assetPaths(s).join('|')).join('\n'); }
 async function prepare(onProg) {
   const sig = signature();
   if (sig === prepSig && !preparing) return;
@@ -36,8 +36,7 @@ async function prepare(onProg) {
       for (const ap of assetPaths(s)) { try { await preloadAsset(ap); } catch (e) { msg(t('logoMissing', { p: ap }), 'warn'); } }
       if (s.type === 'map') { try { await loadTrack(s.track); s._bad = ''; } catch (e) { s._bad = String(e?.message || e); } onProg?.(n, list.length); continue; }
       if (s.type !== 'file') { onProg?.(n, list.length); continue; }
-      const ac = cur.show.settings.autoCap || 'off';
-      if (ac !== 'off' && !s.cap) { try { s._auto = await autoCaption(s.path, ac); } catch { s._auto = ''; } } else s._auto = '';
+      if (!s.cap) { try { s._auto = await autoText(s.path, cur.show.settings); } catch { s._auto = ''; } } else s._auto = '';
       const k = slideKey(s.path, s.page);
       if (prep.get(k)?.ok) { onProg?.(n, list.length); continue; }
       try {
@@ -262,11 +261,10 @@ function makeLayer(it) {
   }
   const capText = s.cap || s._auto;
   if (S.captions && capText && it.type !== 'title' && it.type !== 'map') {
-    // Bildtext nie unter das Wasserzeichen legen
-    const wp = s.wm?.path ? (s.wm.pos || 'br') : '';
-    const c = h('div.cap' + (s.cap ? '' : '.auto') + (!s.cap && wp === 'br' ? '.left' : ''), capText);
-    if (s.cap && wp === 'bc') c.style.bottom = `calc(5% + ${(s.wm.size || 12) + 5}cqh)`;
-    L.append(c);
+    // Bildtext nie unter das Wasserzeichen legen; Farbe nach Helligkeit (in goTo gemessen) oder pro Dia festgelegt
+    const auto = !s.cap;
+    L._cap = capNode(capText, { auto, corner: capCorner(S, s), tone: s.capTone && s.capTone !== 'auto' ? s.capTone : 'light', liftForWm: !auto && s.wm?.path && s.wm.pos === 'bc' ? (s.wm.size || 12) : 0 });
+    L.append(L._cap);
   }
   const w = wmNode(s.wm); if (w) L.append(w);
   return L;
@@ -277,8 +275,9 @@ async function goTo(i, dir) {
   const it = run.list[i]; if (!it) return;
   const seq = (run.seq = (run.seq || 0) + 1);
   const L = makeLayer(it);
-  const img = L.querySelector('img');
+  const img = L.querySelector('.kb img');
   if (img) { try { await Promise.race([img.decode(), new Promise((r) => setTimeout(r, 2500))]); } catch { /* zeigt trotzdem */ } }
+  if (img && L._cap && (!it.s.capTone || it.s.capTone === 'auto')) L._cap.classList.toggle('dark', toneOf(it, img) === 'dark');
   if (!run || seq !== run.seq) return;
   const stage = $('stage'); const old = run.layer;
   stage.insertBefore(L, $('blackOv'));
@@ -300,6 +299,15 @@ async function goTo(i, dir) {
   if (v) { v.currentTime = 0; v.play().catch(() => { v.muted = true; v.play().catch(() => {}); }); }
   if (img && run.S.kenburns && it.s.kind !== 'pdf') kenBurns(L.querySelector('.kb'), (slideSeconds(it) || 8) + run.S.trDur);
   schedule(); preload(i); updRef(true);
+}
+/** Helligkeit hinter dem Bildtext (zwischengespeichert je Bild, Ausschnitt und Einstellungen). */
+const tones = new Map();
+function toneOf(it, img) {
+  const S = run.S; const s = it.s; const auto = !s.cap; const corner = capCorner(S, s);
+  const stage = $('stage'); const ar = stage.clientWidth && stage.clientHeight ? stage.clientWidth / stage.clientHeight : 16 / 9;
+  const key = [it.url, JSON.stringify(s.crop || null), S.fit, S.portraitBg, auto, corner, ar.toFixed(2)].join('|');
+  if (!tones.has(key)) tones.set(key, measureTone(img, { crop: s.crop, fit: S.fit, portraitBg: S.portraitBg, ar, region: capRegion(auto, corner) }));
+  return tones.get(key);
 }
 function effects(tr, dir) {
   const d = dir < 0 ? -1 : 1;

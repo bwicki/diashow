@@ -196,6 +196,18 @@ Object.assign(EN, {
   shPwChanged: 'Password for «{n}» changed.', shDelText: 'Delete «{n}» ({v} views)? The link stops working; all uploaded files are removed. Your originals stay untouched.', shDeleted: '«{n}» deleted.',
 });
 
+/* 1.7.0: Bildtext aus Aufnahmedaten, Schriftfarbe */
+Object.assign(DE, {
+  capPlace: 'Ort', capDate: 'Datum', capTime: 'Zeit', capNoGps: 'Dias ohne GPS', capNoGpsShow: 'Datum/Zeit zeigen', capNoGpsHide: 'nichts zeigen', capPos: 'Ecke',
+  capHint: 'Nur aus den Aufnahmedaten des Bildes (EXIF) – nie aus Dateiname oder Dateidatum. Der Ort braucht beim ersten Mal Internet (danach zwischengespeichert): «Vorführen» vor dem Anlass einmal mit Internet öffnen. Steht das Logo in derselben Ecke, weicht der Text zur anderen Seite aus. Ein eigener Bildtext beim Dia ersetzt den automatischen.',
+  capTone: 'Farbe des Bildtexts', capToneAuto: 'automatisch', capToneLight: 'hell', capToneDark: 'dunkel',
+});
+Object.assign(EN, {
+  capPlace: 'Place', capDate: 'Date', capTime: 'Time', capNoGps: 'Slides without GPS', capNoGpsShow: 'show date/time', capNoGpsHide: 'show nothing', capPos: 'Corner',
+  capHint: 'Only from the picture\'s capture data (EXIF) – never from the file name or file date. The place needs internet the first time (cached afterwards): open «Present» once with internet before the event. If the logo sits in the same corner, the text moves to the other side. A caption of its own on the slide replaces the automatic one.',
+  capTone: 'Caption colour', capToneAuto: 'automatic', capToneLight: 'light', capToneDark: 'dark',
+});
+
 let cur = (() => { try { return JSON.parse(localStorage.getItem('diashow.lang')) || 'de'; } catch { return 'de'; } })();
 export const lang = () => cur;
 export function setLang(l) { cur = l === 'en' ? 'en' : 'de'; try { localStorage.setItem('diashow.lang', JSON.stringify(cur)); } catch { /* egal */ } document.documentElement.lang = cur; }
