@@ -499,6 +499,7 @@ function renderMulti(side, list) {
 function renderWhole(side) {
   const S = cur.show.settings;
   const segR = (val, opts, fn) => seg(val, opts, (v) => { fn(v); changed(true, 'meta'); });
+  append(side, capSettings(S));
   append(side, [
     h('div.section-title.mt', t('wholeShow')),
     row(t('advance'), segR(S.mode, [['auto', t('auto')], ['manual', t('manual')]], (v) => { S.mode = v; })),
@@ -509,7 +510,6 @@ function renderWhole(side) {
     chk(t('loop'), S.loop, (v) => { S.loop = v; }),
     chk(t('kenburns'), S.kenburns, (v) => { S.kenburns = v; }),
     chk(t('captions'), S.captions, (v) => { S.captions = v; }),
-    ...capSettings(S),
     chk(t('portraitBg'), S.portraitBg !== false, (v) => { S.portraitBg = v; }),
     chk(t('defWm', { l: logoLabel((S.wmDefault || DEF_WM).path) }), S.defWm, (v) => { S.defWm = v; }),
     h('div.lbl.mt', t('pool')),
@@ -522,9 +522,11 @@ function renderWhole(side) {
 function capSettings(S) {
   const c = capCfg(S);
   const setF = (k, v) => { S.capFields = { ...c.fields, [k]: v }; c.fields[k] = v; };
-  const out = [chk(t('autoCap'), c.on, (v) => { S.autoCap = v ? 'on' : 'off'; if (!S.capFields) S.capFields = { ...c.fields }; renderSide(); })];
-  if (!c.on) return out;
-  out.push(
+  const out = [h('div.section-title.mt', t('capSection')), chk(t('autoCap'), c.on, (v) => { S.autoCap = v ? 'on' : 'off'; if (!S.capFields) S.capFields = { ...c.fields }; renderSide(); })];
+  // Optionen immer sichtbar (ausgegraut, solange aus), damit man sie findet
+  const box = h('div.capopts' + (c.on ? '' : '.off'));
+  out.push(box);
+  append(box, [
     h('div.capfields', [
       h('label.check', h('input', { type: 'checkbox', checked: c.fields.place, onchange: (e) => { setF('place', e.target.checked); changed(true, 'meta'); } }), t('capPlace')),
       h('label.check', h('input', { type: 'checkbox', checked: c.fields.date, onchange: (e) => { setF('date', e.target.checked); changed(true, 'meta'); } }), t('capDate')),
@@ -533,7 +535,7 @@ function capSettings(S) {
     row(t('capNoGps'), seg(c.noGps, [['show', t('capNoGpsShow')], ['hide', t('capNoGpsHide')]], (v) => { S.capNoGps = v; changed(true, 'meta'); })),
     row(t('capPos'), seg(c.pos, CAP_POS.map((p) => [p, t('pos_' + p)]), (v) => { S.capPos = v; changed(true, 'meta'); })),
     h('p.note', t('capHint')),
-  );
+  ]);
   return out;
 }
 function totalSeconds() {

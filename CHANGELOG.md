@@ -1,5 +1,11 @@
 # Changelog — Diashow
 
+## 1.7.1 — 2026-11-04
+
+- Einstellungen «Bildtext aus Aufnahmedaten» als eigener Abschnitt über «Ganze Diashow»; Ort/Datum/Zeit, «Dias ohne GPS»
+  und Ecke sind immer sichtbar (ausgegraut, solange ausgeschaltet).
+- Service Worker fragt bei jedem Programmteil beim Server nach (kein Mischen alter und neuer Teile nach einem Update).
+
 ## 1.7.0 — 2026-11-04
 
 - **Bildtext aus Aufnahmedaten neu:** Ort, Datum und Zeit einzeln wählbar (z. B. «DE-Gladbeck · 29.08.2026 · 08:16»);
