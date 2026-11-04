@@ -4,9 +4,9 @@
  */
 export const APP = {
   name: 'Diashow',
-  version: '1.8.0',
+  version: '1.8.1',
   date: '2026-11-04',
-  cache: 'diashow-v1.8.0',
+  cache: 'diashow-v1.8.1',
   api: 'https://diashow-api.balthasar.workers.dev',   // Worker für geteilte Diashows (Phase 2)
   repo: 'https://github.com/bwicki/diashow',
 };

@@ -1,5 +1,10 @@
 # Changelog — Diashow
 
+## 1.8.1 — 2026-11-04
+
+- Bildschirm bleibt während der Vorführung und im Betrachter an (Screen Wake Lock) – wichtig, wenn die Diashow
+  unbeaufsichtigt läuft; sonst schaltet Windows den Bildschirm nach der eingestellten Zeit ab.
+
 ## 1.8.0 — 2026-11-04
 
 - **Musik:** Wiedergabeliste für die ganze Diashow (Diashow bearbeiten → Musik) und auf Wunsch je Kapitel

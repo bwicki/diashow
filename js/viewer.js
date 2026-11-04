@@ -94,6 +94,9 @@ function start() {
   const wake = () => { document.body.classList.add('awake'); clearTimeout(idle); idle = setTimeout(() => document.body.classList.remove('awake'), 2500); };
   document.addEventListener('mousemove', wake); document.addEventListener('touchstart', wake, { passive: true }); wake();
   try { document.documentElement.requestFullscreen?.({ navigationUI: 'hide' }).catch(() => {}); } catch { /* egal */ }
+  // Bildschirm wach halten, solange die Diashow läuft
+  const wl = () => { try { navigator.wakeLock?.request('screen').catch(() => {}); } catch { /* egal */ } };
+  wl(); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') wl(); });
   goTo(0, 1);
 }
 const curItem = () => run?.list[run.i];

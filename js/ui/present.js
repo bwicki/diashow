@@ -183,6 +183,7 @@ async function start(from = 0, opt = {}) {
   stage.oncontextmenu = (e) => { e.preventDefault(); prev(); };
   run.tick = setInterval(updRef, 250);
   window.__diashowRun = run;   // für Tests
+  keepAwake(true);
   // Hintergrundmusik (nicht im Probelauf)
   const MC = musicCfg(cur.show.settings);
   if (!opt.test && hasMusic(cur.show.settings, items())) {
@@ -196,8 +197,18 @@ async function start(from = 0, opt = {}) {
   if (!opt.test && scr.withRef && bs && !(refWin && !refWin.closed)) msg(t('refBlocked'), 'warn');
   attachRef();
 }
+/* Bildschirm wach halten (Diashow läuft unbeaufsichtigt; sonst schaltet Windows den Bildschirm nach einigen Minuten ab) */
+let wake = null;
+async function keepAwake(on) {
+  try {
+    if (on && 'wakeLock' in navigator && !wake) { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => { wake = null; }); }
+    if (!on && wake) { await wake.release(); wake = null; }
+  } catch { /* nicht verfügbar – dann gelten die Windows-Energieeinstellungen */ }
+}
+document.addEventListener('visibilitychange', () => { if (run && document.visibilityState === 'visible') keepAwake(true); });
 function stop() {
   if (!run) return;
+  keepAwake(false);
   clearTimeout(run.timer); clearInterval(run.tick);
   window.removeEventListener('keydown', onKey, true);
   const stage = $('stage');
