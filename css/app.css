@@ -347,3 +347,9 @@ input[type=range]{accent-color:var(--amber);}
 .sharelink input{flex:1;font-family:var(--mono);font-size:13px;}
 .capfields{display:flex;gap:14px;flex-wrap:wrap;padding:2px 0 4px 2px;}
 .capopts.off{opacity:.45;pointer-events:none;}
+.ref-music{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.ref-music .ref-lbl{margin:0 4px 0 0;}
+.ref-mname{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+.mlist{display:flex;flex-direction:column;gap:4px;margin:4px 0 6px;}
+.mrow{display:flex;align-items:center;gap:6px;font-size:12.5px;}
+.mrow span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}

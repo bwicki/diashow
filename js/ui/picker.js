@@ -67,3 +67,20 @@ export async function chooseTrack() {
   try { const p = await fsx.copyToLogos(await handle.getFile(), 'Tracks'); msg(t('trackCopied', { p })); return p; }
   catch (e) { msg(t('logoCopyFail') + ' ' + (e?.message || e), 'err'); return null; }
 }
+
+/** Musikdateien wählen (mehrere); ausserhalb des Stammordners → Kopie nach _DIASHOWS/Musik. Liefert Pfade. */
+export async function chooseAudio() {
+  let handles;
+  try {
+    handles = await window.showOpenFilePicker({ multiple: true, startIn: fsx.state.root || 'music', types: [{ description: t('musicFiles'), accept: { 'audio/*': ['.mp3', '.m4a', '.aac', '.wav', '.ogg', '.oga', '.opus', '.flac', '.weba'] } }] });
+  } catch (e) { if (e?.name !== 'AbortError') msg(String(e?.message || e), 'err'); return []; }
+  const out = [];
+  for (const handle of handles) {
+    let parts = null;
+    try { parts = await fsx.state.root.resolve(handle); } catch { /* ausserhalb */ }
+    if (parts) { out.push(parts.join('/')); continue; }
+    try { const p = await fsx.copyToLogos(await handle.getFile(), 'Musik'); msg(t('musicCopied', { p })); out.push(p); }
+    catch (e) { msg(t('logoCopyFail') + ' ' + (e?.message || e), 'err'); }
+  }
+  return out;
+}

@@ -179,7 +179,8 @@ async function admin(req, env, parts, url) {
     if (!man || !Array.isArray(man.slides)) return err('Manifest fehlt');
     // Alle Dateien, auf die das Manifest verweist (Dias, Logos, Titel-Hintergründe); alles andere wird entfernt
     const refs = (x) => [x.file, x.poster, x.wm && x.wm.path, x.ts && x.ts.logoPath, x.ts && x.ts.bgPath];
-    const need = new Set(man.slides.flatMap(refs).filter((n) => typeof n === 'string' && nameOk(n)));
+    const music = [...((man.settings && man.settings.music && man.settings.music.list) || []), ...man.slides.flatMap((x) => (x.music && x.music.list) || [])];
+    const need = new Set([...man.slides.flatMap(refs), ...music].filter((n) => typeof n === 'string' && nameOk(n)));
     const objs = await listKeys(env, `s/${id}/`);
     const names = new Map(objs.map((o) => [o.key.slice(`s/${id}/`.length), o.size]));
     const missing = [...need].filter((n) => !names.has(n));

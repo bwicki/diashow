@@ -8,7 +8,7 @@ workers_dev = true
 
 [vars]
 ALLOWED_ORIGINS = "https://diashow.wicki.aero,https://bwicki.github.io,http://localhost:8765,http://127.0.0.1:8765"
-APP_VERSION = "1.6.0"
+APP_VERSION = "1.8.0"
 
 [[d1_databases]]
 binding = "DB"

@@ -208,6 +208,22 @@ Object.assign(EN, {
   capSection: 'Caption from capture data (whole show)', capTone: 'Caption colour', capToneAuto: 'automatic', capToneLight: 'light', capToneDark: 'dark',
 });
 
+/* 1.8.0: Musik */
+Object.assign(DE, {
+  musicSection: 'Musik', musicHint: 'Läuft während der Vorführung (nicht im Probelauf). Bei Videos mit Ton blendet sie ganz aus und läuft danach an derselben Stelle weiter; Pause und Schwarzbild blenden ebenfalls aus. Eigene Musik je Kapitel: bei der Titelfolie. Dateien ausserhalb des Stammordners werden nach _DIASHOWS/Musik kopiert.',
+  musicEmpty: 'Keine Musik gewählt.', musicAdd: '+ Musik hinzufügen …', musicVol: 'Lautstärke', musicFade: 'Ein-/Ausblenden', musicFiles: 'Musik',
+  chapterMusic: 'Musik ab diesem Kapitel', cmKeep: 'weiter wie bisher', cmList: 'eigene Musik', cmOff: 'keine Musik',
+  music: 'Musik', musicOn: 'Musik an', musicOff: 'Musik aus', musicNext: 'Nächster Titel', musicQuieter: 'Leiser', musicLouder: 'Lauter', musicDucked: 'ausgeblendet (Video mit Ton)', musicHeld: 'angehalten', musicNone: 'keine Musik in diesem Kapitel',
+  musicMissing: 'Musikdatei nicht gefunden: {p}', musicFail: 'Musik nicht abspielbar: {p} – {e}', musicCopied: 'Musik kopiert nach {p}',
+});
+Object.assign(EN, {
+  musicSection: 'Music', musicHint: 'Plays during the presentation (not in the test run). For videos with sound it fades out completely and then continues where it stopped; pause and black screen fade it out too. Music per chapter: at the title slide. Files outside the root folder are copied to _DIASHOWS/Musik.',
+  musicEmpty: 'No music chosen.', musicAdd: '+ Add music …', musicVol: 'Volume', musicFade: 'Fade in/out', musicFiles: 'Music',
+  chapterMusic: 'Music from this chapter on', cmKeep: 'continue as before', cmList: 'own music', cmOff: 'no music',
+  music: 'Music', musicOn: 'Music on', musicOff: 'Music off', musicNext: 'Next track', musicQuieter: 'Quieter', musicLouder: 'Louder', musicDucked: 'faded out (video with sound)', musicHeld: 'paused', musicNone: 'no music in this chapter',
+  musicMissing: 'Music file not found: {p}', musicFail: 'Music cannot be played: {p} – {e}', musicCopied: 'Music copied to {p}',
+});
+
 let cur = (() => { try { return JSON.parse(localStorage.getItem('diashow.lang')) || 'de'; } catch { return 'de'; } })();
 export const lang = () => cur;
 export function setLang(l) { cur = l === 'en' ? 'en' : 'de'; try { localStorage.setItem('diashow.lang', JSON.stringify(cur)); } catch { /* egal */ } document.documentElement.lang = cur; }

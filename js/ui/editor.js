@@ -10,7 +10,8 @@ import { cur, changed, onChange, addTitle, addMap, TRANSITIONS, DEF_WM } from '.
 import { titleNode, wmNode, styleWm, tstyle, PRESETS, WM_DEFAULT, BUILTIN, cropView } from '../render.js';
 import { loadTrack, trackThumb, MAP_DEFAULT } from '../track.js';
 import { cropDialog } from './crop.js';
-import { pickImage, chooseTrack } from './picker.js';
+import { pickImage, chooseTrack, chooseAudio } from './picker.js';
+import { musicCfg } from '../music.js';
 import { go } from '../app.js';
 import { capCfg, autoText, capCorner, capRegion, measureTone, capNode, CAP_POS } from '../caption.js';
 
@@ -360,6 +361,15 @@ function renderTitleEditor(side, s, upd) {
       row(t('darken'), range(0, 0.8, 0.05, cs.dim, (v) => set('dim', v), (v) => Math.round(v * 100) + ' %')));
   };
   drawBg();
+  const mus = s.music || { mode: 'keep', list: [] };
+  const mBox = h('div');
+  const drawM = () => { clear(mBox); if (mus.mode === 'list') mBox.append(musicList(mus.list, () => { s.music = mus; changed(true, 'meta'); })); };
+  append(side, [
+    h('div.section-title.mt', t('chapterMusic')),
+    seg(mus.mode, [['keep', t('cmKeep')], ['list', t('cmList')], ['off', t('cmOff')]], (v) => { mus.mode = v; if (v === 'keep' && !mus.list.length) delete s.music; else s.music = mus; changed(true, 'meta'); drawM(); }),
+    mBox,
+  ]);
+  drawM();
   append(side, [
     h('div.section-title.mt', t('titleEditor')),
     field(t('titleText'), h('textarea', { rows: 3, value: s.cap || '', oninput: (e) => { s.cap = e.target.value; upd(); } })),
@@ -500,6 +510,7 @@ function renderWhole(side) {
   const S = cur.show.settings;
   const segR = (val, opts, fn) => seg(val, opts, (v) => { fn(v); changed(true, 'meta'); });
   append(side, capSettings(S));
+  append(side, musicSettings(S));
   append(side, [
     h('div.section-title.mt', t('wholeShow')),
     row(t('advance'), segR(S.mode, [['auto', t('auto')], ['manual', t('manual')]], (v) => { S.mode = v; })),
@@ -517,6 +528,33 @@ function renderWhole(side) {
     h('p.note', t('poolHint')),
     h('p.note', t('totalTime', { t: mmss(totalSeconds()) })),
   ]);
+}
+/** Liste von Musikdateien bearbeiten (Reihenfolge, entfernen, hinzufügen). */
+function musicList(arr, onChange) {
+  const box = h('div.mlist');
+  const draw = () => {
+    clear(box);
+    arr.forEach((p, i) => box.append(h('div.mrow', [
+      h('span', { title: p }, '♪ ' + fsx.baseName(p)),
+      h('button.btn.mini', { type: 'button', disabled: i === 0, onclick: () => { [arr[i - 1], arr[i]] = [arr[i], arr[i - 1]]; onChange(); draw(); } }, '↑'),
+      h('button.btn.mini', { type: 'button', onclick: () => { arr.splice(i, 1); onChange(); draw(); } }, '✕'),
+    ])));
+    if (!arr.length) box.append(h('p.note', t('musicEmpty')));
+    box.append(h('div.row-actions', h('button.btn.mini', { type: 'button', onclick: async () => { const ps = await chooseAudio(); if (!ps.length) return; arr.push(...ps.filter((p) => !arr.includes(p))); onChange(); draw(); } }, t('musicAdd'))));
+  };
+  draw();
+  return box;
+}
+/** Musik der ganzen Diashow: Liste, Lautstärke, Ausblenddauer. */
+function musicSettings(S) {
+  const m = musicCfg(S); S.music = m;
+  return [
+    h('div.section-title.mt', t('musicSection')),
+    h('p.note', t('musicHint')),
+    musicList(m.list, () => changed(true, 'meta')),
+    row(t('musicVol'), range(0.1, 1, 0.05, m.vol, (v) => { m.vol = v; changed(true, 'meta'); }, (v) => Math.round(v * 100) + ' %')),
+    row(t('musicFade'), sel([['1', '1 s'], ['2', '2 s'], ['3', '3 s'], ['4', '4 s']], String(m.fade), (v) => { m.fade = +v; changed(true, 'meta'); })),
+  ];
 }
 /** Bildtext aus Aufnahmedaten: ein/aus, Felder, Dias ohne GPS, Ecke. */
 function capSettings(S) {

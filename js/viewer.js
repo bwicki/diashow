@@ -8,6 +8,7 @@ import { h } from './util.js';
 import { titleNode, wmNode } from './render.js';
 import { mountMap } from './track.js';
 import { capNode } from './caption.js';
+import { Music, musicFor } from './music.js';
 import { APP } from './version.js';
 
 const API = (() => { try { return JSON.parse(localStorage.getItem('diashow.api')) || APP.api; } catch { return APP.api; } })();
@@ -68,6 +69,11 @@ function start() {
     list = [...head, ...list];
   }
   run = { list, i: -1, S, paused: false, layer: null, timer: null, lastTr: null, ended: false, muted: false };
+  const SM = S.music || null;
+  const anyMusic = (SM?.list?.length) || list.some((x) => x.type === 'title' && x.s.music?.mode === 'list' && x.s.music.list?.length);
+  if (anyMusic) run.music = new Music({ urlOf: async (n) => fileUrl(n), vol: SM?.vol ?? 0.7, fade: SM?.fade ?? 2, onChange: () => updBar() });
+  $('bMusic').hidden = !run.music;
+  $('bMusic').onclick = (e) => { e.stopPropagation(); run.music?.setMuted(!run.music.muted); updBar(); };
   const stage = $('stage');
   stage.oncontextmenu = (e) => e.preventDefault();
   stage.onclick = () => next();
@@ -76,7 +82,7 @@ function start() {
   $('bNext').onclick = (e) => { e.stopPropagation(); next(); };
   $('bPlay').onclick = (e) => { e.stopPropagation(); togglePause(); };
   $('bFs').onclick = (e) => { e.stopPropagation(); toggleFs(); };
-  $('bSound').onclick = (e) => { e.stopPropagation(); run.muted = !run.muted; const v = run.layer?.querySelector('video'); if (v) v.muted = run.muted || !curItem()?.s.sound; updBar(); };
+  $('bSound').onclick = (e) => { e.stopPropagation(); run.muted = !run.muted; const v = run.layer?.querySelector('video'); if (v) { v.muted = run.muted || !curItem()?.s.sound; run.music?.duck(!v.muted); } updBar(); };
   document.addEventListener('keydown', onKey);
   document.addEventListener('dragstart', (e) => e.preventDefault());
   // Touch: wischen
@@ -108,6 +114,7 @@ function prev() { if (!run) return; if (run.ended) { run.ended = false; goTo(run
 function togglePause() {
   run.paused = !run.paused;
   const v = run.layer?.querySelector('video'); if (v) { if (run.paused) v.pause(); else v.play().catch(() => {}); }
+  run.music?.hold(run.paused);
   schedule(); updBar();
 }
 function toggleFs() { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); else document.documentElement.requestFullscreen?.().catch(() => {}); }
@@ -127,6 +134,7 @@ function markDone() {
 }
 function showEnd() {
   run.ended = true; clearTimeout(run.timer);
+  run.music?.stop(3);
   const old = run.layer;
   const L = h('div.layer.endl', h('div.sv-end', [h('div.endtxt', T.end), h('button.btn.big', { type: 'button', onclick: (e) => { e.stopPropagation(); run.ended = false; goTo(0, 1); } }, T.again)]));
   $('stage').insertBefore(L, $('blackOv'));
@@ -194,7 +202,13 @@ async function goTo(i, dir) {
   }
   if (it.type === 'map') mountMap(L.querySelector('.mapwrap'), it.s, (slideSeconds(it) || 12) * 0.75).then((c) => { L._map = c; }).catch(() => {});
   const v = L.querySelector('video');
-  if (v) { v.currentTime = 0; if (!run.paused) v.play().catch(() => { v.muted = true; v.play().catch(() => {}); updBar(); }); }
+  if (v) { v.currentTime = 0; if (!run.paused) v.play().catch(() => { v.muted = true; v.play().catch(() => {}); run.music?.duck(false); updBar(); }); }
+  if (run.music) {
+    const mf = musicFor(run.list, i, run.S.music?.list || []);
+    run.music.resume(); run.music.setList(mf.key, mf.paths);
+    run.music.duck(!!v && !v.muted);
+    if (v) v.addEventListener('ended', () => { if (run?.layer === L) run.music?.duck(false); });   // Video fertig → Musik wieder ein
+  }
   if (img && run.S.kenburns && !it.s.pdf) kenBurns(L.querySelector('.kb'), (slideSeconds(it) || 8) + run.S.trDur);
   if (i === run.list.length - 1) markDone();
   schedule(); preload(i); updBar();
@@ -225,6 +239,7 @@ function updBar() {
   if (!run) return;
   $('bPos').textContent = run.ended ? '' : `${run.i + 1} / ${run.list.length}`;
   $('bPlay').textContent = run.paused ? '▶︎ Auto' : '⏸';
+  if (run.music) $('bMusic').textContent = run.music.muted ? '🔇♪' : '♪';
   const v = run.layer?.querySelector('video');
   $('bSound').hidden = !v || !curItem()?.s.sound;
   if (v) $('bSound').textContent = v.muted ? '🔇' : '🔊';

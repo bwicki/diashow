@@ -15,6 +15,7 @@ import { assetUrl, tstyle, WM_DEFAULT } from '../render.js';
 import { loadTrack } from '../track.js';
 import { autoText, capCorner, capRegion, measureTone } from '../caption.js';
 import { APP } from '../version.js';
+import { musicCfg, AUDIO_CT } from '../music.js';
 
 const MAXPX = 2560;
 const RENDER_V = 'r1';                 // ändern, wenn sich die Aufbereitung ändert → alles neu
@@ -128,6 +129,19 @@ function once(ctx, name, fn) {
   if (!ctx.pending.has(name)) ctx.pending.set(name, fn().then(() => { ctx.uploaded++; ctx.log.push(name); }));
   return ctx.pending.get(name);
 }
+/** Musikdatei unverändert hochladen; liefert den Namen auf dem Server. */
+async function musicFile(path, ctx) {
+  const f = await fileOf(path);
+  const ext = extOf(path);
+  const name = `m-${await sha([RENDER_V, 'm', path, f.size, f.lastModified].join('|'))}.${ext}`;
+  await once(ctx, name, () => putFile(ctx.id, name, f, AUDIO_CT[ext] || f.type || 'audio/mpeg', ctx.bytes));
+  return name;
+}
+async function musicFiles(paths, ctx, errs) {
+  const out = [];
+  for (const p of paths || []) { try { out.push(await musicFile(p, ctx)); } catch (e) { errs.push(`${t('music')}: ${p} – ${e?.message || e}`); } }
+  return out;
+}
 /** Aus einem Dia den Manifest-Eintrag bauen und – falls nötig – die Datei hochladen. */
 async function prepareSlide(s, ctx) {
   const S = cur.show.settings;
@@ -151,7 +165,8 @@ async function prepareSlide(s, ctx) {
 
   if (s.type === 'title') {
     const ts = tstyle(s);
-    return { t: 'title', ...base, cap: s.cap || '', sub: s.sub || '', ts: { ...ts, bgPath: ts.bg === 'image' ? await asset(ts.bgPath, true) : '', logoPath: await asset(ts.logoPath, false) }, wm: await wmData(s.wm) };
+    const music = s.music?.mode && s.music.mode !== 'keep' ? { mode: s.music.mode, list: s.music.mode === 'list' ? await musicFiles(s.music.list, ctx, ctx.errs) : [] } : undefined;
+    return { t: 'title', ...base, music, cap: s.cap || '', sub: s.sub || '', ts: { ...ts, bgPath: ts.bg === 'image' ? await asset(ts.bgPath, true) : '', logoPath: await asset(ts.logoPath, false) }, wm: await wmData(s.wm) };
   }
   if (s.type === 'map') {
     const tr = await loadTrack(s.track);
@@ -237,7 +252,7 @@ async function runShare(existing, title, password) {
     const ctx = { id, have: new Set(have.map((x) => x.name)), used: new Set(), uploaded: 0, sent: 0, dims: new Map((prevMan?.slides || []).filter((x) => x.file).map((x) => [x.file, { w: x.w, h: x.h }])) };
     ctx.bytes = (n) => { ctx.sent += n; };
     ctx.log = []; ctx.pending = new Map(); ctx.tones = new Map();
-    const slides = cur.show.slides; const out = new Array(slides.length); let done = 0; const errs = [];
+    const slides = cur.show.slides; const out = new Array(slides.length); let done = 0; const errs = []; ctx.errs = errs;
     const lim = limiter(3);
     await Promise.all(slides.map((s, i) => lim(async () => {
       if (cancelled) return;
@@ -249,9 +264,12 @@ async function runShare(existing, title, password) {
     })));
     if (cancelled) { back.remove(); msg(t('shCancelled'), 'warn'); return; }
     const S = cur.show.settings;
+    const MC = musicCfg(S);
+    const showMusic = MC.list.length ? { list: await musicFiles(MC.list, ctx, errs), vol: MC.vol, fade: MC.fade } : undefined;
+    if (cancelled) { back.remove(); msg(t('shCancelled'), 'warn'); return; }
     const manifest = {
       v: 1, title, app: APP.version, created: new Date().toISOString(),
-      settings: { dur: S.dur, trDur: S.trDur, order: S.order, loop: S.loop, kenburns: S.kenburns, captions: S.captions, pool: S.pool, fit: S.fit, portraitBg: S.portraitBg },
+      settings: { dur: S.dur, trDur: S.trDur, order: S.order, loop: S.loop, kenburns: S.kenburns, captions: S.captions, pool: S.pool, fit: S.fit, portraitBg: S.portraitBg, music: showMusic },
       slides: out.filter(Boolean),
     };
     st.textContent = t('shPublishing');

@@ -14,6 +14,7 @@ import { cur, slideKey, TRANSITIONS } from '../show.js';
 import { titleNode, wmNode, assetPaths, preloadAsset, cropView } from '../render.js';
 import { mountMap, loadTrack, trackThumb } from '../track.js';
 import { autoText, capSig, capCorner, capRegion, measureTone, capNode } from '../caption.js';
+import { Music, musicFor, musicCfg, hasMusic } from '../music.js';
 
 const prep = new Map();          // slideKey -> {ok, type, url, duration, err}
 let prepSig = ''; let preparing = null;
@@ -31,6 +32,9 @@ async function prepare(onProg) {
   if (preparing) { await preparing; if (sig === prepSig) return; }
   preparing = (async () => {
     const list = items(); let n = 0;
+    // Musikdateien vorhanden?
+    const mpaths = [...musicCfg(cur.show.settings).list, ...list.filter((s) => s.type === 'title' && s.music?.mode === 'list').flatMap((s) => s.music.list || [])];
+    for (const mp of new Set(mpaths)) { try { await fileOf(mp); } catch { msg(t('musicMissing', { p: mp }), 'warn'); } }
     for (const s of list) {
       n++;
       for (const ap of assetPaths(s)) { try { await preloadAsset(ap); } catch (e) { msg(t('logoMissing', { p: ap }), 'warn'); } }
@@ -178,6 +182,16 @@ async function start(from = 0, opt = {}) {
   stage.onclick = () => next();
   stage.oncontextmenu = (e) => { e.preventDefault(); prev(); };
   run.tick = setInterval(updRef, 250);
+  window.__diashowRun = run;   // für Tests
+  // Hintergrundmusik (nicht im Probelauf)
+  const MC = musicCfg(cur.show.settings);
+  if (!opt.test && hasMusic(cur.show.settings, items())) {
+    const urls = new Map();
+    run.music = new Music({ vol: MC.vol, fade: MC.fade,
+      urlOf: async (p) => { if (!urls.has(p)) urls.set(p, URL.createObjectURL(await fileOf(p))); return urls.get(p); },
+      onError: (p, e) => msg(t('musicFail', { p, e }), 'warn'), onChange: () => updRef(true) });
+    run.musicUrls = urls;
+  }
   goTo(from, 1);
   if (!opt.test && scr.withRef && bs && !(refWin && !refWin.closed)) msg(t('refBlocked'), 'warn');
   attachRef();
@@ -188,6 +202,7 @@ function stop() {
   window.removeEventListener('keydown', onKey, true);
   const stage = $('stage');
   stage.querySelectorAll('video').forEach((v) => v.pause());
+  if (run.music) { const m = run.music, u = run.musicUrls; m.stop(0.6); setTimeout(() => { m.dispose(); for (const x of u.values()) URL.revokeObjectURL(x); }, 800); }
   clear(stage); stage.hidden = true;
   run = null;
   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
@@ -223,12 +238,14 @@ function togglePause() {
   if (!run.auto) { run.auto = true; run.paused = false; } else run.paused = !run.paused;
   const v = run.layer?.querySelector('video');
   if (v) { if (run.paused) v.pause(); else v.play().catch(() => {}); }
+  run.music?.hold(run.paused || run.black);
   schedule(); updRef(true);
 }
-function toggleBlack() { if (!run) return; run.black = !run.black; $('blackOv').classList.toggle('on', run.black); updRef(true); }
+function toggleBlack() { if (!run) return; run.black = !run.black; $('blackOv').classList.toggle('on', run.black); run.music?.hold(run.paused || run.black); updRef(true); }
 function end() { if (run?.windowed && !document.fullscreenElement) { stop(); return; } if (run?.test) { const n = run.list.length; stop(); msg(t('testDone', { n })); return; } if (document.fullscreenElement) document.exitFullscreen().catch(() => stop()); else stop(); }
 function showEnd() {
   run.ended = true; clearTimeout(run.timer);
+  run.music?.stop(3);
   const old = run.layer; const L = h('div.layer.endl', h('div.endtxt', t('endOfShow')));
   $('stage').insertBefore(L, $('blackOv'));
   L.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 800 });
@@ -296,7 +313,14 @@ async function goTo(i, dir) {
   }
   if (it.type === 'map') mountMap(L.querySelector('.mapwrap'), it.s, (slideSeconds(it) || 12) * 0.75).then((c) => { L._map = c; }).catch((e) => msg(String(e?.message || e), 'warn'));
   const v = L.querySelector('video');
-  if (v) { v.currentTime = 0; v.play().catch(() => { v.muted = true; v.play().catch(() => {}); }); }
+  if (v) { v.currentTime = 0; v.play().catch(() => { v.muted = true; v.play().catch(() => {}); run?.music?.duck(false); }); }
+  if (run.music) {
+    // Kapitel-Musik; Video mit Ton → Musik ganz ausblenden, danach an derselben Stelle weiter
+    const mf = musicFor(run.list, i, musicCfg(run.S).list);
+    run.music.resume(); run.music.setList(mf.key, mf.paths);
+    run.music.duck(!!v && !v.muted);
+    if (v) v.addEventListener('ended', () => { if (run?.layer === L) run.music?.duck(false); });   // Video fertig → Musik wieder ein
+  }
   if (img && run.S.kenburns && it.s.kind !== 'pdf') kenBurns(L.querySelector('.kb'), (slideSeconds(it) || 8) + run.S.trDur);
   schedule(); preload(i); updRef(true);
 }
@@ -457,9 +481,17 @@ function renderRef() {
         h('button.btn#rPause', { type: 'button', onclick: () => togglePause() }, '⏸'),
         h('button.btn', { type: 'button', onclick: () => next() }, '▶'),
         h('button.btn#rBlack', { type: 'button', onclick: () => toggleBlack() }, t('blackBtn')),
-        h('button.btn#rSound', { type: 'button', onclick: () => { const v = run?.layer?.querySelector('video'); if (v) { v.muted = !v.muted; updRef(true); } } }, '🔊'),
+        h('button.btn#rSound', { type: 'button', onclick: () => { const v = run?.layer?.querySelector('video'); if (v) { v.muted = !v.muted; run.music?.duck(!v.muted); updRef(true); } } }, '🔊'),
         h('button.btn', { type: 'button', onclick: () => end() }, t('endBtn')),
       ]),
+      run.music ? h('div.ref-music', [
+        h('span.ref-lbl', t('music')),
+        h('button.btn#rMusic', { type: 'button', onclick: () => { run.music.setMuted(!run.music.muted); updRef(true); } }, '🎵'),
+        h('button.btn', { type: 'button', title: t('musicNext'), onclick: () => run.music.next() }, '⏭'),
+        h('button.btn', { type: 'button', title: t('musicQuieter'), onclick: () => { run.music.setVolume(run.music.vol - 0.1); updRef(true); } }, '−'),
+        h('button.btn', { type: 'button', title: t('musicLouder'), onclick: () => { run.music.setVolume(run.music.vol + 0.1); updRef(true); } }, '+'),
+        h('span.ref-mname#rMname'),
+      ]) : null,
       h('p.note', { html: t('keysHelp') }),
     ]),
     h('div.ref-strip#rStrip'),
@@ -498,6 +530,11 @@ function updRef(full) {
   g('rPause').textContent = run.auto && !run.paused ? '⏸ ' + t('auto') : '▶ ' + t('auto');
   g('rBlack').classList.toggle('on', run.black);
   g('rSound').hidden = !v; if (v) g('rSound').textContent = v.muted ? '🔇 ' + t('soundOff') : '🔊 ' + t('soundOn');
+  if (run.music && g('rMusic')) {
+    const m = run.music;
+    g('rMusic').textContent = m.muted ? '🔇 ' + t('musicOff') : '🎵 ' + t('musicOn');
+    g('rMname').textContent = m.paths.length ? `${m.name} · ${Math.round(m.vol * 100)} %${m.ducked ? ' · ' + t('musicDucked') : m.held ? ' · ' + t('musicHeld') : ''}` : t('musicNone');
+  }
   // Leiste aller Dias
   const strip = g('rStrip');
   if (refStripFor !== run.list) {

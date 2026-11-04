@@ -154,6 +154,17 @@ Source-available, siehe `LICENSE`. © 2026 Balthasar Wicki, Wicki Aero GmbH.
 
 ---
 
+## Musik
+
+**Diashow bearbeiten → Musik:** Musikdateien wählen (MP3, M4A, WAV, OGG, FLAC; ausserhalb des Stammordners
+wird eine Kopie nach `_DIASHOWS/Musik` gelegt), Reihenfolge, Lautstärke, Ein-/Ausblenddauer. Je Kapitel bei der
+Titelfolie: «weiter wie bisher», «eigene Musik» oder «keine Musik». Bei Videos mit Ton blendet die Musik ganz aus und
+läuft danach an derselben Stelle weiter; Pause und Schwarzbild blenden aus. Steuerung in der Referentensicht.
+Musik von Spotify lässt sich nicht verwenden (kopiergeschützt); gekaufte Dateien (iTunes/Apple, Amazon, Bandcamp),
+eigene CDs oder lizenzfreie Musik gehen.
+
+---
+
 ## Teilen über Link (Phase 2)
 
 **≡ → Diashow teilen (Link) …** bereitet jedes Dia im Browser auf und lädt es hoch:

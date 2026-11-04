@@ -1,5 +1,15 @@
 # Changelog — Diashow
 
+## 1.8.0 — 2026-11-04
+
+- **Musik:** Wiedergabeliste für die ganze Diashow (Diashow bearbeiten → Musik) und auf Wunsch je Kapitel
+  (Titelfolie → «Musik ab diesem Kapitel»: weiter wie bisher / eigene Musik / keine Musik). MP3, M4A, WAV, OGG, FLAC.
+- Bei Videos mit Ton blendet die Musik ganz aus und läuft danach an derselben Stelle weiter; Pause und Schwarzbild
+  blenden ebenfalls aus; Ende der Diashow blendet langsam aus. Springt man in ein Kapitel zurück, läuft dessen Musik
+  dort weiter, wo sie war. Lautstärke und Ein-/Ausblenddauer einstellbar; im Probelauf keine Musik.
+- Referentensicht: Musik an/aus, nächster Titel, leiser/lauter, Anzeige des Titels.
+- Geteilte Links nehmen die Musik mit (Dateien unverändert); im Betrachter Knopf ♪ zum Stummschalten.
+
 ## 1.7.1 — 2026-11-04
 
 - Einstellungen «Bildtext aus Aufnahmedaten» als eigener Abschnitt über «Ganze Diashow»; Ort/Datum/Zeit, «Dias ohne GPS»
