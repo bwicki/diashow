@@ -224,6 +224,16 @@ Object.assign(EN, {
   musicMissing: 'Music file not found: {p}', musicFail: 'Music cannot be played: {p} – {e}', musicCopied: 'Music copied to {p}',
 });
 
+/* 1.9.0: Verschieben per Nummer */
+Object.assign(DE, {
+  moveTo: 'Vor Dia Nr. verschieben', moveToN: '{k} markierte Dias vor Dia Nr. verschieben', moveGo: 'Verschieben', moveHint: '{n} = ans Ende',
+  moveBadNo: 'Bitte eine Dia-Nummer zwischen 1 und {n} eingeben.', moveSelf: 'Das Dia kann nicht vor sich selbst verschoben werden.', moved: '{k} Dia(s) verschoben – jetzt ab Nr. {n}.',
+});
+Object.assign(EN, {
+  moveTo: 'Move before slide no.', moveToN: 'Move {k} selected slides before slide no.', moveGo: 'Move', moveHint: '{n} = to the end',
+  moveBadNo: 'Please enter a slide number between 1 and {n}.', moveSelf: 'A slide cannot be moved before itself.', moved: '{k} slide(s) moved – now from no. {n}.',
+});
+
 let cur = (() => { try { return JSON.parse(localStorage.getItem('diashow.lang')) || 'de'; } catch { return 'de'; } })();
 export const lang = () => cur;
 export function setLang(l) { cur = l === 'en' ? 'en' : 'de'; try { localStorage.setItem('diashow.lang', JSON.stringify(cur)); } catch { /* egal */ } document.documentElement.lang = cur; }

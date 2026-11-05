@@ -316,10 +316,12 @@ function renderSingle(side, s) {
   if (s.type === 'file') side.append(h('div.path', (fsx.rootName() + '/' + s.path).split('/').join(' › ')));
   if (missing.has(s.id)) side.append(h('div.missbox', [h('p.err', t('fileMissingLong')), h('button.btn', { type: 'button', onclick: () => relocate(s) }, t('searchByName'))]));
 
+  if (s.type !== 'file') side.append(moveField([s]));
   if (s.type === 'title') renderTitleEditor(side, s, upd);
   else if (s.type === 'map') renderMapEditor(side, s, upd);
   else append(side, [
     field(t('caption'), h('input', { type: 'text', value: s.cap || '', placeholder: t('captionPh'), oninput: (e) => { s.cap = e.target.value; changed(true, 'meta'); }, onchange: renderSlides })),
+    moveField([s]),
     field(t('capTone'), seg(s.capTone || 'auto', [['auto', t('capToneAuto')], ['light', t('capToneLight')], ['dark', t('capToneDark')]], (v) => { if (v === 'auto') delete s.capTone; else s.capTone = v; changed(true, 'meta'); })),
   ]);
   append(side, [
@@ -498,6 +500,7 @@ function renderMulti(side, list) {
     h('div.section-title', t('multiSel', { n: list.length })),
     preview(list.find((x) => x.id === selId) || list[0]),
     h('p.note', t('multiHint')),
+    moveField(list),
     field(t('duration'), sel([['', t('noChange')], ['std', t('standard')], ...DURS.map((d) => [String(d), d + ' s'])], '', (v) => { if (!v) return; for (const s of list) s.dur = v === 'std' ? null : +v; changed(true, 'slides'); })),
     field(t('transition'), sel([['', t('noChange')], ['rnd', t('random')], ...TRANSITIONS.map((x) => [x, t('tr_' + x)])], '', (v) => { if (!v) return; for (const s of list) s.tr = v === 'rnd' ? '' : v; changed(true, 'slides'); })),
   ]);
@@ -606,6 +609,29 @@ async function newTitleDlg() {
   setTimeout(() => box()?.querySelector(`[data-id="${s.id}"]`)?.scrollIntoView({ block: 'center' }), 50);
 }
 /* ---------- Aktionen ---------- */
+/** Dia(s) vor das Dia mit Nummer n setzen (n = Anzahl + 1 → ans Ende). */
+function moveBefore(list, n) {
+  const all = cur.show.slides; const N = all.length;
+  if (!Number.isInteger(n) || n < 1 || n > N + 1) { msg(t('moveBadNo', { n: N + 1 }), 'warn'); return false; }
+  const target = all[n - 1] || null;
+  if (target && list.includes(target)) { msg(t('moveSelf'), 'warn'); return false; }
+  const rest = all.filter((s) => !list.includes(s));
+  const at = target ? rest.indexOf(target) : rest.length;
+  rest.splice(at, 0, ...list.slice().sort((a, b) => all.indexOf(a) - all.indexOf(b)));
+  cur.show.slides = rest; changed(true, 'slides');
+  const first = list[0];
+  msg(t('moved', { k: list.length, n: cur.show.slides.indexOf(first) + 1 }));
+  setTimeout(() => box()?.querySelector(`[data-id="${first.id}"]`)?.scrollIntoView({ block: 'center' }), 60);
+  return true;
+}
+/** Eingabefeld «Vor Dia Nr. … verschieben» für die Seitenleiste. */
+function moveField(list) {
+  const N = cur.show.slides.length;
+  const inp = h('input', { type: 'number', min: 1, max: N + 1, step: 1, placeholder: '1 – ' + (N + 1), style: { width: '90px' } });
+  const go = () => { const v = parseInt(inp.value, 10); if (moveBefore(list, v)) inp.value = ''; };
+  inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); go(); } });
+  return field(list.length > 1 ? t('moveToN', { k: list.length }) : t('moveTo'), h('div.inline', [inp, h('button.btn', { type: 'button', onclick: go }, t('moveGo')), h('span.note', t('moveHint', { n: N + 1 }))]));
+}
 function moveSel(d) {
   const i = idx(selId); const j = i + d; const sl = cur.show.slides;
   if (i < 0 || j < 0 || j >= sl.length) return;

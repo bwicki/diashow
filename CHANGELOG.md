@@ -1,5 +1,11 @@
 # Changelog — Diashow
 
+## 1.9.0 — 2026-11-05
+
+- **Dia per Nummer verschieben:** In der rechten Spalte steht direkt unter dem Bildtext «Vor Dia Nr. verschieben»:
+  Nummer eingeben, Enter oder «Verschieben» – das Dia wird vor das Dia mit dieser Nummer gesetzt (letzte Nummer + 1 =
+  ans Ende). Bei Titel- und Karten-Folien zuoberst; bei mehreren markierten Dias werden alle zusammen verschoben.
+
 ## 1.8.1 — 2026-11-04
 
 - Bildschirm bleibt während der Vorführung und im Betrachter an (Screen Wake Lock) – wichtig, wenn die Diashow
